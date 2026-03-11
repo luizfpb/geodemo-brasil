@@ -1,9 +1,8 @@
-# Mapa Interativo dos Municípios do Brasil
+# GeoDemoBrasil — Plataforma de Análise Geodemográfica
 
-Visualização interativa de todos os 5.570 municípios brasileiros com dados populacionais do Censo Demográfico 2022 (IBGE). Permite buscar, selecionar e analisar municípios individualmente ou por raio geográfico.
+Plataforma interativa de análise geodemográfica dos 5.570 municípios brasileiros com dados do Censo Demográfico 2022 (IBGE). Permite visualizar, comparar e exportar indicadores socioeconômicos por município ou região.
 
-<!-- Substitua pelo link real do screenshot após hospedagem -->
-![Screenshot do mapa](screenshot.png)
+![Screenshot do mapa](public/screenshot.png)
 
 **[Demo ao vivo](https://luizfpb.github.io/mapa-municipios-brasil/)**
 
@@ -11,56 +10,102 @@ Visualização interativa de todos os 5.570 municípios brasileiros com dados po
 
 ## Funcionalidades
 
-- **Mapa interativo** com malha municipal completa do Brasil (renderização via Canvas para performance)
-- **Busca por nome** com autocomplete e destaque de correspondência
-- **Seleção individual** de municípios por clique, com toggle
-- **Seleção por raio** — define um ponto no mapa e seleciona automaticamente todos os municípios dentro de um raio configurável (1–2000 km)
-- **Painel de estatísticas** com contagem de municípios selecionados e população total agregada
-- **Lista de selecionados** ordenada por população, com navegação por clique e remoção individual
-- **Limites estaduais** sobrepostos para referência visual
-- **Tooltips dinâmicos** com nome e população ao passar o mouse
-- **Sidebar retrátil** para uso em tela cheia
-- **Barra de progresso** durante carregamento dos dados
+- **Mapa coroplético interativo** com malha municipal completa (renderização via Canvas)
+- **Camadas temáticas**: população, densidade, faixa etária, educação, renda, IDHM, urbanização
+- **Busca por nome** com autocomplete e navegação por teclado
+- **Seleção individual** por clique (toggle)
+- **Seleção por raio** geográfico (1–2000 km) com interseção via Turf.js
+- **Grupos de comparação** (A/B) com painel side-by-side e gráficos
+- **Exportação** dos dados selecionados em CSV e Excel (.xlsx)
+- **Painel de estatísticas** com contagem e população agregada
+- **Limites estaduais** sobrepostos
+- **Tooltips dinâmicos** com dados do tema ativo
+- **Sidebar retrátil** e layout responsivo
+- **Debug mode** via `Ctrl+Shift+D`
 
 ## Fontes de dados
 
-Todos os dados são carregados em tempo real diretamente das APIs do IBGE:
-
-| Dado | Fonte | API |
-|------|-------|-----|
-| Malha municipal (geometrias) | IBGE Malhas | [API v3 – Malhas](https://servicodados.ibge.gov.br/api/docs/malhas?versao=3) |
-| Nomes dos municípios | IBGE Localidades | [API v1 – Localidades](https://servicodados.ibge.gov.br/api/docs/localidades) |
+| Dado | Fonte | Referência |
+|------|-------|------------|
+| Malha municipal | IBGE Malhas | [API v3](https://servicodados.ibge.gov.br/api/docs/malhas?versao=3) |
+| Nomes dos municípios | IBGE Localidades | [API v1](https://servicodados.ibge.gov.br/api/docs/localidades) |
 | População (Censo 2022) | IBGE SIDRA | [Tabela 9514](https://apisidra.ibge.gov.br/) |
-| Limites estaduais | IBGE Malhas | [API v3 – Malhas](https://servicodados.ibge.gov.br/api/docs/malhas?versao=3) |
+| Limites estaduais | IBGE Malhas | [API v3](https://servicodados.ibge.gov.br/api/docs/malhas?versao=3) |
+| IDHM | Atlas Brasil / PNUD | [Atlas Brasil](https://atlasbrasil.org.br/) |
 
 ## Stack
 
-- [Leaflet](https://leafletjs.com/) — mapa interativo
-- [TopoJSON](https://github.com/topojson/topojson) — parsing das malhas compactadas
-- [Turf.js](https://turfjs.org/) — operações geoespaciais (círculo de raio, intersecção)
-- [CARTO Basemaps](https://carto.com/basemaps) — tiles de fundo
-- HTML/CSS/JS vanilla — sem frameworks, sem build step
+- **Frontend**: Vanilla JS (ES modules) + [Leaflet](https://leafletjs.com/) + [Chart.js](https://www.chartjs.org/)
+- **Build**: [Vite](https://vitejs.dev/)
+- **Geoespacial**: [TopoJSON](https://github.com/topojson/topojson) + [Turf.js](https://turfjs.org/)
+- **Exportação**: [SheetJS](https://sheetjs.com/)
+- **Pipeline de dados**: Python (requests)
+- **Tiles**: [CARTO Basemaps](https://carto.com/basemaps)
 
-## Como usar
+## Setup
 
-### Online (GitHub Pages)
+### Requisitos
 
-Acesse a [demo ao vivo](https://luizfpb.github.io/mapa-municipios-brasil/) — nenhuma instalação necessária.
+- Node.js 18+
+- Python 3.10+ (para o pipeline de dados)
 
-### Local
+### Instalação
 
 ```bash
 git clone https://github.com/luizfpb/mapa-municipios-brasil
 cd mapa-municipios-brasil
-# Abra index.html no navegador, ou sirva com qualquer servidor HTTP:
-python3 -m http.server 8000
+npm install
 ```
 
-> **Nota:** O aplicativo faz requisições às APIs do IBGE, então é necessária conexão com a internet.
+### Desenvolvimento
 
-### Debug
+```bash
+npm run dev
+```
 
-Pressione `Ctrl+Shift+D` para ativar/desativar o log de debug no canto inferior direito.
+O servidor de desenvolvimento inicia em `http://localhost:3000`.
+
+### Build de produção
+
+```bash
+npm run build
+npm run preview   # Testar o build localmente
+```
+
+### Pipeline de dados (opcional)
+
+Para gerar/atualizar os JSONs de dados temáticos:
+
+```bash
+cd scripts
+pip install -r requirements.txt
+python build_data.py
+```
+
+Flags disponíveis:
+- `--skip-download`: pula o download e só processa dados existentes em `data/raw/`
+
+## Estrutura do projeto
+
+```
+├── data/
+│   ├── raw/              # Dados brutos (gitignored)
+│   └── processed/        # JSONs prontos para o frontend
+├── scripts/              # Pipeline Python de ETL
+├── src/
+│   ├── main.js           # Entry point
+│   ├── map.js            # Leaflet init
+│   ├── layers.js         # Renderização e eventos
+│   ├── choropleth.js     # Escalas de cor e legenda
+│   ├── data.js           # Carregamento de dados
+│   ├── state.js          # Estado global reativo
+│   ├── ui/               # Módulos de interface
+│   ├── utils/            # Utilitários (fetch, format, debug)
+│   └── styles/           # CSS modular
+├── index.html
+├── vite.config.js
+└── package.json
+```
 
 ## Licença
 

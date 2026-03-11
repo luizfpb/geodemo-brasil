@@ -1,0 +1,134 @@
+/* ═══════════════════════════════════════════════════════
+   components.css — Componentes compartilhados, responsivo
+   ═══════════════════════════════════════════════════════ */
+
+/* ─── Toast notification ─── */
+
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 3000;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 10px 16px;
+  font-size: 13px;
+  color: var(--text-primary);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  transform: translateY(20px);
+  opacity: 0;
+  transition: all 0.3s ease;
+  pointer-events: none;
+}
+
+.toast.visible {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.toast.toast-success {
+  border-color: var(--color-selected);
+}
+
+.toast.toast-error {
+  border-color: var(--color-danger);
+}
+
+/* ─── Skeleton loader ─── */
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--bg-tertiary) 25%,
+    var(--bg-hover) 50%,
+    var(--bg-tertiary) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-pulse 1.5s infinite;
+  border-radius: var(--radius-sm);
+}
+
+@keyframes skeleton-pulse {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ─── Badge / Chip ─── */
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 12px;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+.chip--accent {
+  background: var(--accent-dim);
+  color: var(--accent-light);
+}
+
+/* ─── Responsive ─── */
+
+@media (max-width: 768px) {
+  :root {
+    --sidebar-width: 100vw;
+  }
+
+  #app {
+    flex-direction: column;
+  }
+
+  #sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 100vw;
+    min-width: unset;
+    z-index: 1500;
+    transition: transform var(--transition-base);
+  }
+
+  #sidebar.collapsed {
+    margin-left: 0;
+    transform: translateX(-100%);
+  }
+
+  #map-container {
+    width: 100vw;
+    height: 100vh;
+  }
+
+  #sidebar-toggle {
+    z-index: 1600;
+  }
+
+  #comparison-panel {
+    width: 95vw;
+    max-height: 45vh;
+    bottom: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .sidebar-header h1 {
+    font-size: 14px;
+  }
+
+  .controls-section {
+    padding: 10px 14px;
+  }
+
+  .radius-controls {
+    flex-wrap: wrap;
+  }
+
+  .btn-row {
+    flex-wrap: wrap;
+  }
+}

@@ -1,9 +1,30 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Raw data (heavy, regenerable)
+data/raw/*.json
+data/raw/*.csv
+!data/raw/.gitkeep
+
+# OS
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Editor
+.vscode/
+.idea/
 *.swp
 *.swo
 *~
-.vscode/
-.idea/
+
+# Logs
 *.log
+npm-debug.log*
+
+# Env
+.env
+.env.local

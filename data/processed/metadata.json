@@ -1,0 +1,12 @@
+{
+  "themes": {
+    "populacao": {
+      "source": "SIDRA Tabela 9514",
+      "description": "População residente total — Censo Demográfico 2022",
+      "updated": "",
+      "records": 0,
+      "note": "Execute 'python scripts/build_data.py' para gerar os dados."
+    }
+  },
+  "note": "Este arquivo é gerado automaticamente pelo pipeline de dados."
+}

@@ -1,825 +1,163 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mapa de Municípios — Censo 2022</title>
-
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Turf.js/6.5.0/turf.min.js"></script>
-
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
-  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-  :root{
-    --bg-primary:#0f1117;--bg-secondary:#181a22;--bg-tertiary:#1e2029;
-    --bg-hover:#262833;--border:#2a2d3a;
-    --text-primary:#e4e6ed;--text-secondary:#9498a8;--text-muted:#5f6375;
-    --accent:#4a90d9;--accent-light:#6aadff;
-    --selected:#2ecc71;--radius-color:#e67e22;--danger:#e74c3c;
-    --font-body:'IBM Plex Sans',sans-serif;--font-mono:'JetBrains Mono',monospace;
-  }
-  html,body{height:100%;overflow:hidden;background:var(--bg-primary);color:var(--text-primary);font-family:var(--font-body)}
-  #app{display:flex;height:100vh;width:100vw}
-
-  #sidebar{
-    width:360px;min-width:360px;background:var(--bg-primary);
-    border-right:1px solid var(--border);display:flex;flex-direction:column;
-    z-index:1000;transition:margin-left .3s ease;
-  }
-  #sidebar.collapsed{margin-left:-360px}
-  #sidebar-toggle{
-    position:absolute;top:12px;left:12px;z-index:1100;width:36px;height:36px;
-    background:var(--bg-secondary);border:1px solid var(--border);border-radius:6px;
-    color:var(--text-secondary);cursor:pointer;display:flex;align-items:center;
-    justify-content:center;font-size:18px;
-  }
-  #sidebar-toggle:hover{background:var(--bg-hover);color:var(--text-primary)}
-  .sidebar-header{padding:16px 18px 12px;border-bottom:1px solid var(--border)}
-  .sidebar-header h1{font-size:15px;font-weight:700;letter-spacing:-.02em}
-  .sidebar-header p{font-size:11px;color:var(--text-muted);margin-top:2px;font-family:var(--font-mono)}
-
-  #stats-panel{padding:14px 18px;border-bottom:1px solid var(--border);background:var(--bg-secondary)}
-  .stat-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
-  .stat-row:last-child{margin-bottom:0}
-  .stat-label{font-size:12px;color:var(--text-secondary)}
-  .stat-value{font-family:var(--font-mono);font-size:14px;font-weight:600}
-  .stat-value.pop{color:var(--accent-light)}
-
-  .controls-section{padding:12px 18px;border-bottom:1px solid var(--border)}
-  .controls-section label{
-    display:block;font-size:11px;color:var(--text-muted);
-    text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;font-weight:600;
-  }
-  .search-wrap{position:relative}
-  #search-input{
-    width:100%;padding:8px 10px;background:var(--bg-tertiary);
-    border:1px solid var(--border);border-radius:6px;color:var(--text-primary);
-    font-size:13px;font-family:var(--font-body);outline:none;
-  }
-  #search-input:focus{border-color:var(--accent)}
-  #search-input::placeholder{color:var(--text-muted)}
-  #search-results{
-    position:absolute;top:100%;left:0;right:0;max-height:220px;overflow-y:auto;
-    background:var(--bg-secondary);border:1px solid var(--border);border-top:none;
-    border-radius:0 0 6px 6px;z-index:10;display:none;
-  }
-  #search-results.visible{display:block}
-  .search-item{
-    padding:8px 10px;font-size:12px;cursor:pointer;
-    display:flex;justify-content:space-between;transition:background .15s;
-  }
-  .search-item:hover{background:var(--bg-hover)}
-  .search-item .name{color:var(--text-primary)}
-  .search-item .pop{color:var(--text-muted);font-family:var(--font-mono);font-size:11px}
-
-  .radius-controls{display:flex;gap:8px;align-items:center}
-  .radius-controls input[type="number"]{
-    width:80px;padding:7px 8px;background:var(--bg-tertiary);
-    border:1px solid var(--border);border-radius:6px;color:var(--text-primary);
-    font-size:13px;font-family:var(--font-mono);outline:none;
-  }
-  .radius-controls input[type="number"]:focus{border-color:var(--radius-color)}
-  .radius-controls span{font-size:12px;color:var(--text-secondary)}
-
-  .btn{
-    padding:7px 12px;border:1px solid var(--border);border-radius:6px;
-    font-size:12px;font-family:var(--font-body);font-weight:500;
-    cursor:pointer;transition:all .2s;white-space:nowrap;
-  }
-  .btn-accent{background:var(--accent);border-color:var(--accent);color:#fff}
-  .btn-accent:hover{background:var(--accent-light)}
-  .btn-accent.active{background:var(--radius-color);border-color:var(--radius-color)}
-  .btn-ghost{background:transparent;color:var(--text-secondary)}
-  .btn-ghost:hover{background:var(--bg-hover);color:var(--text-primary)}
-  .btn-danger{background:transparent;border-color:var(--danger);color:var(--danger)}
-  .btn-danger:hover{background:rgba(231,76,60,.1)}
-  .btn-row{display:flex;gap:6px;margin-top:8px}
-
-  #selected-list-wrap{flex:1;overflow:hidden;display:flex;flex-direction:column}
-  #selected-list-header{
-    padding:10px 18px;border-bottom:1px solid var(--border);
-    font-size:11px;color:var(--text-muted);text-transform:uppercase;
-    letter-spacing:.06em;font-weight:600;display:flex;justify-content:space-between;align-items:center;
-  }
-  #selected-list{flex:1;overflow-y:auto;padding:4px 0}
-  #selected-list::-webkit-scrollbar{width:6px}
-  #selected-list::-webkit-scrollbar-track{background:transparent}
-  #selected-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
-  .selected-item{
-    display:flex;justify-content:space-between;align-items:center;
-    padding:7px 18px;font-size:12px;cursor:pointer;transition:background .15s;
-  }
-  .selected-item:hover{background:var(--bg-hover)}
-  .selected-item .name{color:var(--text-primary);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .selected-item .pop{font-family:var(--font-mono);font-size:11px;color:var(--accent-light);margin-left:8px;flex-shrink:0}
-  .selected-item .remove{margin-left:6px;color:var(--text-muted);cursor:pointer;font-size:14px;flex-shrink:0;width:18px;text-align:center}
-  .selected-item .remove:hover{color:var(--danger)}
-  #empty-state{padding:32px 18px;text-align:center;color:var(--text-muted);font-size:12px;line-height:1.6}
-
-  #map-container{flex:1;position:relative}
-  #map{width:100%;height:100%;background:#e8e8e8}
-
-  #loading-overlay{
-    position:absolute;inset:0;background:var(--bg-primary);z-index:2000;
-    display:flex;flex-direction:column;align-items:center;justify-content:center;
-    transition:opacity .4s;
-  }
-  #loading-overlay.hidden{opacity:0;pointer-events:none}
-  .loader-title{font-size:16px;font-weight:600;margin-bottom:20px}
-  .progress-bar-wrap{width:280px;height:6px;background:var(--bg-tertiary);border-radius:3px;overflow:hidden;margin-bottom:12px}
-  .progress-bar{height:100%;background:var(--accent);border-radius:3px;width:0%;transition:width .4s ease}
-  #loading-status{font-size:12px;color:var(--text-muted);font-family:var(--font-mono)}
-  #loading-error{
-    margin-top:16px;padding:12px 16px;background:rgba(231,76,60,.1);
-    border:1px solid var(--danger);border-radius:6px;color:var(--danger);
-    font-size:12px;max-width:400px;text-align:center;display:none;
-  }
-  #dismiss-error{
-    margin-top:12px;padding:6px 14px;background:var(--danger);border:none;
-    border-radius:4px;color:#fff;font-size:12px;cursor:pointer;display:none;
-  }
-
-  #radius-banner{
-    position:absolute;top:12px;left:50%;transform:translateX(-50%);
-    z-index:1050;background:var(--radius-color);color:#fff;
-    padding:8px 16px;border-radius:6px;font-size:13px;font-weight:600;
-    display:none;box-shadow:0 4px 16px rgba(0,0,0,.3);pointer-events:none;
-  }
-  #radius-banner.visible{display:block}
-
-  .muni-tooltip{
-    background:var(--bg-secondary)!important;border:1px solid var(--border)!important;
-    color:var(--text-primary)!important;font-family:var(--font-body)!important;
-    font-size:12px!important;padding:6px 10px!important;border-radius:4px!important;
-    box-shadow:0 4px 12px rgba(0,0,0,.4)!important;
-  }
-  .muni-tooltip .pop-line{font-family:var(--font-mono);font-size:11px;color:var(--accent-light);margin-top:2px}
-  .leaflet-tooltip-top:before{border-top-color:var(--border)!important}
-  .leaflet-tooltip-bottom:before{border-bottom-color:var(--border)!important}
-
-  /* Legenda coroplética */
-  .pop-legend{
-    background:var(--bg-secondary);border:1px solid var(--border);border-radius:6px;
-    padding:10px 12px;font-family:var(--font-body);min-width:160px;
-    box-shadow:0 2px 8px rgba(0,0,0,.4);
-  }
-  .legend-title{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin-bottom:6px}
-  .legend-bar{display:flex;height:12px;border-radius:3px;overflow:hidden}
-  .legend-stop{flex:1}
-  .legend-labels{display:flex;justify-content:space-between;margin-top:4px;font-size:10px;color:var(--text-secondary);font-family:var(--font-mono)}
-
-  /* Debug log no canto inferior direito */
-  #debug-log{
-    position:absolute;bottom:8px;right:8px;z-index:1200;
-    background:rgba(0,0,0,.85);color:#0f0;font-family:var(--font-mono);
-    font-size:10px;padding:6px 10px;border-radius:4px;max-width:360px;
-    max-height:120px;overflow-y:auto;pointer-events:none;display:none;
-  }
-  #debug-log.visible{display:block}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Plataforma de análise geodemográfica dos municípios brasileiros com dados do Censo 2022 (IBGE)">
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta http-equiv="X-Frame-Options" content="DENY">
+  <title>GeoDemoBrasil — Análise Geodemográfica</title>
+  <link rel="icon" href="/favicon.ico">
 </head>
 <body>
-<div id="app">
-  <aside id="sidebar">
-    <div class="sidebar-header">
-      <h1>Municípios do Brasil</h1>
-      <p>Censo Demográfico 2022 — IBGE</p>
-    </div>
-    <div id="stats-panel">
-      <div class="stat-row">
-        <span class="stat-label">Municípios selecionados</span>
-        <span class="stat-value" id="stat-count">0</span>
+  <div id="app">
+    <aside id="sidebar">
+      <div class="sidebar-header">
+        <h1>GeoDemoBrasil</h1>
+        <p class="sidebar-subtitle">Censo Demográfico 2022 — IBGE</p>
       </div>
-      <div class="stat-row">
-        <span class="stat-label">População total</span>
-        <span class="stat-value pop" id="stat-pop">0</span>
-      </div>
-    </div>
-    <div class="controls-section">
-      <label>Buscar município</label>
-      <div class="search-wrap">
-        <input type="text" id="search-input" placeholder="Digite o nome do município..." autocomplete="off" />
-        <div id="search-results"></div>
-      </div>
-    </div>
-    <div class="controls-section">
-      <label>Seleção por raio</label>
-      <div class="radius-controls">
-        <input type="number" id="radius-input" min="1" max="2000" value="100" step="10" />
-        <span>km</span>
-        <button class="btn btn-accent" id="radius-btn">Ativar raio</button>
-      </div>
-      <div class="btn-row">
-        <button class="btn btn-ghost" id="clear-radius-btn">Limpar raio</button>
-        <button class="btn btn-danger" id="clear-all-btn">Limpar tudo</button>
-      </div>
-    </div>
-    <div id="selected-list-wrap">
-      <div id="selected-list-header">
-        <span>Selecionados</span>
-        <span id="list-count">0</span>
-      </div>
-      <div id="selected-list">
-        <div id="empty-state">Clique em municípios no mapa para selecioná-los, ou use a busca e o modo raio.</div>
-      </div>
-    </div>
-  </aside>
 
-  <div id="map-container">
-    <button id="sidebar-toggle" title="Alternar painel">&#9776;</button>
-    <div id="radius-banner">Clique no mapa para definir o centro do raio</div>
-    <div id="map"></div>
-    <div id="debug-log"></div>
-    <div id="loading-overlay">
-      <div class="loader-title">Carregando dados geográficos...</div>
-      <div class="progress-bar-wrap"><div class="progress-bar" id="progress-bar"></div></div>
-      <div id="loading-status">Iniciando...</div>
-      <div id="loading-error"></div>
-      <button id="dismiss-error">Fechar e usar o mapa mesmo assim</button>
+      <div id="stats-panel">
+        <div class="stat-row">
+          <span class="stat-label">Municípios selecionados</span>
+          <span class="stat-value" id="stat-count">0</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">População total</span>
+          <span class="stat-value pop" id="stat-pop">0</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Variável ativa</span>
+          <span class="stat-value theme-label" id="stat-theme">População</span>
+        </div>
+      </div>
+
+      <!-- Seletor de camada temática -->
+      <div class="controls-section">
+        <label for="theme-select">Camada temática</label>
+        <select id="theme-select">
+          <option value="populacao" selected>População</option>
+          <option value="densidade">Densidade demográfica</option>
+          <option value="faixa-etaria">Faixa etária</option>
+          <option value="educacao">Educação</option>
+          <option value="renda">Renda</option>
+          <option value="idhm">IDHM</option>
+          <option value="urbanizacao">Urbanização</option>
+        </select>
+        <select id="theme-subvar" class="subvar-select hidden">
+          <!-- Populated dynamically -->
+        </select>
+      </div>
+
+      <!-- Busca -->
+      <div class="controls-section">
+        <label for="search-input">Buscar município</label>
+        <div class="search-wrap">
+          <input
+            type="text"
+            id="search-input"
+            placeholder="Digite o nome do município..."
+            autocomplete="off"
+            maxlength="100"
+          />
+          <div id="search-results" role="listbox" aria-label="Resultados da busca"></div>
+        </div>
+      </div>
+
+      <!-- Raio -->
+      <div class="controls-section">
+        <label>Seleção por raio</label>
+        <div class="radius-controls">
+          <input
+            type="number"
+            id="radius-input"
+            min="10"
+            max="2000"
+            value="100"
+            step="10"
+            aria-label="Raio em quilômetros"
+          />
+          <span class="unit-label">km</span>
+          <button class="btn btn-accent" id="radius-btn">Ativar raio</button>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-ghost" id="clear-radius-btn">Limpar raio</button>
+          <button class="btn btn-danger" id="clear-all-btn">Limpar tudo</button>
+        </div>
+      </div>
+
+      <!-- Grupos de comparação -->
+      <div class="controls-section" id="groups-section">
+        <label>Grupos de comparação</label>
+        <div class="groups-controls">
+          <select id="active-group-select">
+            <option value="A" selected>Grupo A</option>
+            <option value="B">Grupo B</option>
+          </select>
+          <button class="btn btn-ghost btn-sm" id="compare-btn" disabled>Comparar</button>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-ghost btn-sm" id="swap-groups-btn">Trocar grupos</button>
+          <button class="btn btn-ghost btn-sm" id="clear-groups-btn">Resetar grupos</button>
+        </div>
+      </div>
+
+      <!-- Exportação -->
+      <div class="controls-section">
+        <label>Exportar dados</label>
+        <div class="btn-row">
+          <button class="btn btn-ghost" id="export-csv-btn" disabled>CSV</button>
+          <button class="btn btn-ghost" id="export-xlsx-btn" disabled>Excel</button>
+        </div>
+      </div>
+
+      <!-- Lista de selecionados -->
+      <div id="selected-list-wrap">
+        <div id="selected-list-header">
+          <span>Selecionados</span>
+          <span id="list-count">0</span>
+        </div>
+        <div id="selected-list" role="list">
+          <div id="empty-state">
+            Clique em municípios no mapa para selecioná-los, ou use a busca e o modo raio.
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <div id="map-container">
+      <button id="sidebar-toggle" title="Alternar painel" aria-label="Alternar painel lateral">&#9776;</button>
+      <div id="radius-banner" aria-live="polite">Clique no mapa para definir o centro do raio</div>
+      <div id="map"></div>
+      <div id="debug-log" aria-hidden="true"></div>
+
+      <!-- Painel de comparação (overlay) -->
+      <div id="comparison-panel" class="hidden">
+        <div class="comparison-header">
+          <h2>Comparação de Grupos</h2>
+          <button class="btn-close" id="close-comparison" aria-label="Fechar comparação">&times;</button>
+        </div>
+        <div id="comparison-content"></div>
+        <div id="comparison-charts"></div>
+      </div>
+
+      <!-- Loading overlay -->
+      <div id="loading-overlay">
+        <div class="loader-title">Carregando dados geográficos...</div>
+        <div class="progress-bar-wrap">
+          <div class="progress-bar" id="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+        </div>
+        <div id="loading-status">Iniciando...</div>
+        <div id="loading-error" role="alert"></div>
+        <button id="dismiss-error" class="hidden">Fechar e usar o mapa mesmo assim</button>
+      </div>
     </div>
   </div>
-</div>
 
-<script>
-(function() {
-  'use strict';
+  <!-- Libs externas (pesadas demais para bundlear) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Turf.js/6.5.0/turf.min.js"></script>
 
-  // ─── Debug log (Ctrl+Shift+D para ativar) ───
-  var debugEl = document.getElementById('debug-log');
-  var debugEnabled = false;
-  document.addEventListener('keydown', function(e) {
-    if (e.ctrlKey && e.shiftKey && e.key === 'D') {
-      debugEnabled = !debugEnabled;
-      debugEl.classList.toggle('visible', debugEnabled);
-    }
-  });
-  function dbg(msg) {
-    console.log('[DBG] ' + msg);
-    if (debugEnabled) {
-      debugEl.innerHTML += msg + '<br>';
-      debugEl.scrollTop = debugEl.scrollHeight;
-    }
-  }
-
-  var state = {
-    muniLayers: {},
-    muniData: {},
-    selected: new Set(),
-    namesLoaded: false,
-    popLoaded: false,
-    radiusMode: false,
-    radiusCircle: null,
-    radiusMarker: null,
-    meshLoaded: false
-  };
-
-  function el(id) { return document.getElementById(id); }
-  var $statCount     = el('stat-count');
-  var $statPop       = el('stat-pop');
-  var $listCount     = el('list-count');
-  var $selectedList  = el('selected-list');
-  var $emptyState    = el('empty-state');
-  var $searchInput   = el('search-input');
-  var $searchResults = el('search-results');
-  var $radiusBtn     = el('radius-btn');
-  var $radiusInput   = el('radius-input');
-  var $clearRadius   = el('clear-radius-btn');
-  var $clearAll      = el('clear-all-btn');
-  var $sidebarToggle = el('sidebar-toggle');
-  var $sidebar       = el('sidebar');
-  var $radiusBanner  = el('radius-banner');
-  var $overlay       = el('loading-overlay');
-  var $progressBar   = el('progress-bar');
-  var $loadingStatus = el('loading-status');
-  var $loadingError  = el('loading-error');
-  var $dismissError  = el('dismiss-error');
-
-  // ─── Map ───
-  var map = L.map('map', {
-    center: [-14.2, -51.9], zoom: 4,
-    renderer: L.canvas(), zoomControl: false
-  });
-  L.control.zoom({ position: 'topright' }).addTo(map);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; CARTO | IBGE', subdomains: 'abcd', maxZoom: 18
-  }).addTo(map);
-
-  // Pane para bordas estaduais: acima dos polígonos municipais (overlayPane=400), abaixo dos tooltips
-  map.createPane('stateBordersPane');
-  map.getPane('stateBordersPane').style.zIndex = 450;
-  map.getPane('stateBordersPane').style.pointerEvents = 'none';
-
-  var STYLE_NO_DATA  = { weight: 0.4, color: '#555', fillColor: '#b0b8c8', fillOpacity: 0.25 };
-  var STYLE_SELECTED = { weight: 1, color: '#27ae60', fillColor: '#2ecc71', fillOpacity: 0.5 };
-
-  // ─── Escala coroplética (branco → amarelo → laranja → vermelho) ───
-  var POP_STOPS = [
-    { val: 0,    r: 255, g: 255, b: 255 },  // branco
-    { val: 0.25, r: 255, g: 255, b: 178 },  // amarelo claro
-    { val: 0.45, r: 254, g: 204, b: 92  },  // amarelo
-    { val: 0.65, r: 253, g: 141, b: 60  },  // laranja
-    { val: 0.85, r: 240, g: 59,  b: 32  },  // vermelho-laranja
-    { val: 1,    r: 189, g: 0,   b: 38  }   // vermelho escuro
-  ];
-
-  function popToColor(pop) {
-    if (pop == null || isNaN(pop) || pop <= 0) return null;
-    // Escala logarítmica: log10(800)≈2.9, log10(12000000)≈7.08
-    var minLog = Math.log10(800), maxLog = Math.log10(12000000);
-    var t = (Math.log10(Math.max(pop, 800)) - minLog) / (maxLog - minLog);
-    t = Math.max(0, Math.min(1, t));
-    // Interpolar entre stops
-    for (var i = 1; i < POP_STOPS.length; i++) {
-      if (t <= POP_STOPS[i].val) {
-        var a = POP_STOPS[i - 1], b = POP_STOPS[i];
-        var f = (t - a.val) / (b.val - a.val);
-        var r = Math.round(a.r + (b.r - a.r) * f);
-        var g = Math.round(a.g + (b.g - a.g) * f);
-        var bl = Math.round(a.b + (b.b - a.b) * f);
-        return 'rgb(' + r + ',' + g + ',' + bl + ')';
-      }
-    }
-    var last = POP_STOPS[POP_STOPS.length - 1];
-    return 'rgb(' + last.r + ',' + last.g + ',' + last.b + ')';
-  }
-
-  function getPopStyle(code) {
-    var d = state.muniData[code];
-    var c = d ? popToColor(d.pop) : null;
-    if (!c) return STYLE_NO_DATA;
-    return { weight: 0.4, color: '#555', fillColor: c, fillOpacity: 0.7 };
-  }
-  function getPopHoverStyle(code) {
-    var d = state.muniData[code];
-    var c = d ? popToColor(d.pop) : null;
-    if (!c) return { weight: 1.2, color: '#333', fillColor: '#d0d6e0', fillOpacity: 0.45 };
-    return { weight: 1.2, color: '#333', fillColor: c, fillOpacity: 0.9 };
-  }
-
-  function fmtPop(n) {
-    if (n == null || isNaN(n)) return '\u2014';
-    return Number(n).toLocaleString('pt-BR');
-  }
-  function setProgress(pct, text) {
-    $progressBar.style.width = pct + '%';
-    $loadingStatus.textContent = text;
-  }
-  function showError(msg) {
-    $loadingError.textContent = msg;
-    $loadingError.style.display = 'block';
-    $dismissError.style.display = 'inline-block';
-  }
-  function hideOverlay() {
-    setProgress(100, 'Pronto.');
-    setTimeout(function() { $overlay.classList.add('hidden'); }, 300);
-  }
-
-  // Dismiss overlay em caso de erro para permitir interação com mapa parcial
-  $dismissError.addEventListener('click', function() {
-    $overlay.classList.add('hidden');
-  });
-
-  function fetchTimeout(url, ms) {
-    return Promise.race([
-      fetch(url),
-      new Promise(function(_, rej) { setTimeout(function() { rej(new Error('Timeout')); }, ms); })
-    ]).then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r; });
-  }
-  function fetchRetry(url, retries, ms) {
-    retries = retries || 2; ms = ms || 45000;
-    var attempt = 0;
-    function go() {
-      return fetchTimeout(url, ms).catch(function(err) {
-        if (attempt++ < retries) return new Promise(function(r) { setTimeout(r, 1500*attempt); }).then(go);
-        throw err;
-      });
-    }
-    return go();
-  }
-
-  function ensure(code) {
-    if (!state.muniData[code]) state.muniData[code] = { name: null, pop: null, layer: null };
-    return state.muniData[code];
-  }
-
-  // ─── Stats ───
-  function updateStats() {
-    var count = state.selected.size, totalPop = 0;
-    state.selected.forEach(function(code) {
-      var d = state.muniData[code];
-      if (d && d.pop != null) totalPop += d.pop;
-    });
-    $statCount.textContent = fmtPop(count);
-    $statPop.textContent = fmtPop(totalPop);
-    $listCount.textContent = count;
-    renderList();
-  }
-
-  function renderList() {
-    if (state.selected.size === 0) {
-      $selectedList.innerHTML = '';
-      $selectedList.appendChild($emptyState);
-      $emptyState.style.display = 'block';
-      return;
-    }
-    $emptyState.style.display = 'none';
-    var items = [];
-    state.selected.forEach(function(code) {
-      var d = state.muniData[code] || {};
-      items.push({ code: code, name: d.name || ('Cód. ' + code), pop: d.pop });
-    });
-    items.sort(function(a, b) { return (b.pop||0) - (a.pop||0); });
-    $selectedList.innerHTML = items.map(function(it) {
-      return '<div class="selected-item" data-code="'+it.code+'">' +
-        '<span class="name" title="'+it.name+'">'+it.name+'</span>' +
-        '<span class="pop">'+fmtPop(it.pop)+'</span>' +
-        '<span class="remove" data-code="'+it.code+'" title="Remover">&times;</span></div>';
-    }).join('');
-    $selectedList.querySelectorAll('.selected-item').forEach(function(div) {
-      div.addEventListener('click', function(e) {
-        if (e.target.classList.contains('remove')) return;
-        var d = state.muniData[div.dataset.code];
-        if (d && d.layer) map.fitBounds(d.layer.getBounds(), {maxZoom:10,padding:[40,40]});
-      });
-    });
-    $selectedList.querySelectorAll('.remove').forEach(function(btn) {
-      btn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        toggleSelect(btn.dataset.code);
-      });
-    });
-  }
-
-  function toggleSelect(code) {
-    var layer = state.muniLayers[code];
-    if (!layer) return;
-    if (state.selected.has(code)) {
-      state.selected.delete(code);
-      layer.setStyle(getPopStyle(code));
-    } else {
-      state.selected.add(code);
-      layer.setStyle(STYLE_SELECTED);
-    }
-    updateStats();
-  }
-  function selectCode(code) {
-    if (state.selected.has(code)) return;
-    var layer = state.muniLayers[code];
-    if (!layer) return;
-    state.selected.add(code);
-    layer.setStyle(STYLE_SELECTED);
-  }
-  function deselectAll() {
-    state.selected.forEach(function(code) {
-      var l = state.muniLayers[code]; if (l) l.setStyle(getPopStyle(code));
-    });
-    state.selected.clear();
-    updateStats();
-  }
-
-  function tooltipHTML(code) {
-    var d = state.muniData[code];
-    var name = (d && d.name) ? d.name : ('Cód. ' + code);
-    var popStr = (d && d.pop != null) ? fmtPop(d.pop) : (state.popLoaded ? 'sem dados' : 'carregando...');
-    return '<strong>'+name+'</strong><div class="pop-line">Pop: '+popStr+'</div>';
-  }
-
-  // ─── Radius ───
-  function executeRadius(latlng) {
-    dbg('executeRadius chamado: lat=' + latlng.lat.toFixed(4) + ' lng=' + latlng.lng.toFixed(4));
-    var radiusKm = parseFloat($radiusInput.value) || 100;
-    dbg('Raio: ' + radiusKm + 'km');
-    exitRadiusMode();
-    clearRadiusVisuals();
-
-    // Verificar se turf está disponível
-    if (typeof turf === 'undefined') {
-      dbg('ERRO: turf.js não carregou!');
-      alert('Erro: biblioteca Turf.js não foi carregada.');
-      return;
-    }
-    if (typeof turf.circle !== 'function') {
-      dbg('ERRO: turf.circle não é função. Versão do turf pode estar errada.');
-      alert('Erro: turf.circle indisponível.');
-      return;
-    }
-
-    var circle;
-    try {
-      circle = turf.circle([latlng.lng, latlng.lat], radiusKm, { steps: 64, units: 'kilometers' });
-      dbg('Círculo criado OK');
-    } catch(e) {
-      dbg('ERRO turf.circle: ' + e.message);
-      return;
-    }
-
-    state.radiusCircle = L.geoJSON(circle, {
-      style: { weight:2, color:'#e67e22', fillColor:'#e67e22', fillOpacity:0.1, dashArray:'6 4' },
-      interactive: false
-    }).addTo(map);
-
-    state.radiusMarker = L.circleMarker(latlng, {
-      radius:6, color:'#e67e22', fillColor:'#fff', fillOpacity:1, weight:3, interactive:false
-    }).addTo(map);
-
-    dbg('Verificando intersecção com ' + Object.keys(state.muniLayers).length + ' municípios...');
-    var count = 0;
-    for (var code in state.muniLayers) {
-      try {
-        if (turf.booleanIntersects(circle, state.muniLayers[code].feature)) {
-          selectCode(code);
-          count++;
-        }
-      } catch(e) {}
-    }
-    updateStats();
-    dbg('Selecionados: ' + count + ' municípios');
-  }
-
-  function clearRadiusVisuals() {
-    if (state.radiusCircle) { map.removeLayer(state.radiusCircle); state.radiusCircle = null; }
-    if (state.radiusMarker) { map.removeLayer(state.radiusMarker); state.radiusMarker = null; }
-  }
-  function exitRadiusMode() {
-    state.radiusMode = false;
-    $radiusBtn.textContent = 'Ativar raio';
-    $radiusBtn.classList.remove('active');
-    $radiusBanner.classList.remove('visible');
-    map.getContainer().style.cursor = '';
-  }
-
-  // ─── Load mesh ───
-  function loadMesh() {
-    setProgress(5, 'Baixando malha municipal (TopoJSON)...');
-    dbg('Iniciando download da malha...');
-    var url = 'https://servicodados.ibge.gov.br/api/v3/malhas/paises/BR?formato=application/json&qualidade=minima&intrarregiao=municipio';
-    return fetchRetry(url, 2, 60000).then(function(resp) {
-      setProgress(35, 'Processando geometrias...');
-      dbg('Malha baixada, processando JSON...');
-      return resp.json();
-    }).then(function(topo) {
-      var objKey = Object.keys(topo.objects)[0];
-      if (!objKey) throw new Error('TopoJSON vazio');
-      var geojson = topojson.feature(topo, topo.objects[objKey]);
-      dbg('Features: ' + geojson.features.length);
-      setProgress(50, 'Renderizando ' + geojson.features.length + ' municípios...');
-
-      L.geoJSON(geojson, {
-        style: function() { return STYLE_NO_DATA; },
-        onEachFeature: function(feature, layer) {
-          var code = feature.properties.codarea;
-          if (!code) return;
-          state.muniLayers[code] = layer;
-          ensure(code).layer = layer;
-
-          layer.bindTooltip(function() { return tooltipHTML(code); }, {
-            className:'muni-tooltip', sticky:true, direction:'top', offset:[0,-8]
-          });
-          layer.on('mouseover', function() {
-            if (!state.selected.has(code)) this.setStyle(getPopHoverStyle(code));
-          });
-          layer.on('mouseout', function() {
-            if (!state.selected.has(code)) this.setStyle(getPopStyle(code));
-          });
-          layer.on('click', function(e) {
-            if (state.radiusMode) {
-              dbg('Click em polígono no modo raio');
-              executeRadius(e.latlng);
-            } else {
-              toggleSelect(code);
-            }
-          });
-        }
-      }).addTo(map);
-
-      state.meshLoaded = true;
-      setProgress(60, 'Malha renderizada.');
-      dbg('Malha renderizada. Layers: ' + Object.keys(state.muniLayers).length);
-    });
-  }
-
-  // ─── Load state borders ───
-  function loadStateBorders() {
-    dbg('Baixando limites estaduais...');
-    var url = 'https://servicodados.ibge.gov.br/api/v3/malhas/paises/BR?formato=application/json&qualidade=minima&intrarregiao=UF';
-    return fetchRetry(url, 1, 30000).then(function(r) { return r.json(); }).then(function(topo) {
-      var objKey = Object.keys(topo.objects)[0];
-      if (!objKey) return;
-      var geojson = topojson.feature(topo, topo.objects[objKey]);
-      L.geoJSON(geojson, {
-        style: function() {
-          return { weight: 2.2, color: '#1a1a2e', fillColor: 'transparent', fillOpacity: 0, opacity: 0.8 };
-        },
-        interactive: false,
-        pane: 'stateBordersPane'
-      }).addTo(map);
-      dbg('Limites estaduais renderizados: ' + geojson.features.length + ' UFs');
-    }).catch(function(err) {
-      dbg('Limites estaduais falhou (não crítico): ' + err.message);
-    });
-  }
-
-  // ─── Load names ───
-  function loadNames() {
-    setProgress(62, 'Baixando nomes dos municípios...');
-    var url = 'https://servicodados.ibge.gov.br/api/v1/localidades/municipios';
-    return fetchRetry(url, 2, 30000).then(function(r) { return r.json(); }).then(function(data) {
-      for (var i = 0; i < data.length; i++) {
-        var item = data[i];
-        var code = String(item.id);
-        var uf = '';
-        try { uf = item.microrregiao.mesorregiao.UF.sigla; } catch(e) {}
-        ensure(code).name = item.nome + (uf ? ' - ' + uf : '');
-      }
-      state.namesLoaded = true;
-      setProgress(68, data.length + ' nomes carregados.');
-      dbg('Nomes: ' + data.length);
-    }).catch(function(err) {
-      console.error('Nomes falhou:', err);
-      dbg('Nomes falhou: ' + err.message);
-      setProgress(68, 'Nomes indisponíveis.');
-    });
-  }
-
-  // ─── Load population ───
-  function loadPopulation() {
-    setProgress(70, 'Baixando população (SIDRA)...');
-    var url = 'https://apisidra.ibge.gov.br/values/t/9514/n6/all/v/93/p/last%201/c2/6794/c287/100362/c286/113635';
-    return fetchRetry(url, 2, 60000).then(function(r) { return r.json(); }).then(function(data) {
-      setProgress(85, 'Processando população...');
-      if (!data || data.length < 2) { dbg('SIDRA: dados vazios'); return; }
-
-      // Detectar campos via cabeçalho (row 0)
-      var header = data[0], codeKey = null, valKey = null, nameKey = null;
-      for (var k in header) {
-        var hv = String(header[k]).toLowerCase();
-        if (hv.indexOf('município') !== -1 && hv.indexOf('código') !== -1) codeKey = k;
-        else if (hv === 'valor' || hv === 'value') valKey = k;
-        else if (hv.indexOf('município') !== -1 && hv.indexOf('código') === -1) nameKey = k;
-      }
-      if (!codeKey) codeKey = 'D3C';
-      if (!valKey) valKey = 'V';
-      if (!nameKey) nameKey = 'D3N';
-      dbg('SIDRA keys: code=' + codeKey + ' val=' + valKey + ' name=' + nameKey);
-
-      var loaded = 0;
-      for (var i = 1; i < data.length; i++) {
-        var row = data[i];
-        var code = row[codeKey]; if (!code) continue;
-        code = String(code).trim();
-        var raw = row[valKey];
-        var pop = parseInt(String(raw || '').replace(/\D/g, ''), 10);
-        var d = ensure(code);
-        if (!isNaN(pop)) { d.pop = pop; loaded++; }
-        if (row[nameKey] && !d.name) d.name = row[nameKey];
-      }
-      state.popLoaded = true;
-      setProgress(95, loaded + ' registros populacionais.');
-      dbg('Pop carregada: ' + loaded);
-    }).catch(function(err) {
-      console.error('Pop falhou:', err);
-      dbg('Pop falhou: ' + err.message);
-      state.popLoaded = false;
-    });
-  }
-
-  // ─── Aplicar cores coropléticas após carregar população ───
-  function applyChoropleth() {
-    for (var code in state.muniLayers) {
-      if (!state.selected.has(code)) {
-        state.muniLayers[code].setStyle(getPopStyle(code));
-      }
-    }
-    dbg('Coroplético aplicado.');
-    addLegend();
-  }
-
-  function addLegend() {
-    var legend = L.control({ position: 'bottomleft' });
-    legend.onAdd = function() {
-      var div = L.DomUtil.create('div', 'pop-legend');
-      var labels = ['< 1 mil', '5 mil', '25 mil', '100 mil', '500 mil', '2 mi', '10 mi+'];
-      var vals = [800, 5000, 25000, 100000, 500000, 2000000, 10000000];
-      var html = '<div class="legend-title">População</div><div class="legend-bar">';
-      for (var i = 0; i < vals.length; i++) {
-        html += '<div class="legend-stop" style="background:' + popToColor(vals[i]) + '"></div>';
-      }
-      html += '</div><div class="legend-labels">';
-      html += '<span>' + labels[0] + '</span><span>' + labels[labels.length - 1] + '</span>';
-      html += '</div>';
-      div.innerHTML = html;
-      return div;
-    };
-    legend.addTo(map);
-  }
-
-  // ─── Init ───
-  function init() {
-    // Verificar se libs carregaram
-    dbg('Leaflet: ' + (typeof L !== 'undefined' ? 'OK' : 'FALHA'));
-    dbg('TopoJSON: ' + (typeof topojson !== 'undefined' ? 'OK' : 'FALHA'));
-    dbg('Turf: ' + (typeof turf !== 'undefined' ? 'OK' : 'FALHA'));
-    if (typeof turf !== 'undefined') {
-      dbg('turf.circle: ' + (typeof turf.circle));
-      dbg('turf.booleanIntersects: ' + (typeof turf.booleanIntersects));
-    }
-
-    loadMesh().then(function() {
-      return Promise.all([loadNames(), loadPopulation(), loadStateBorders()]);
-    }).then(function() {
-      applyChoropleth();
-      hideOverlay();
-    }).catch(function(err) {
-      console.error('Erro fatal:', err);
-      dbg('ERRO FATAL: ' + err.message);
-      setProgress(0, 'Erro.');
-      showError('Falha ao carregar dados. Erro: ' + err.message);
-    });
-  }
-
-  // ─── Search ───
-  var debTimer = null;
-  $searchInput.addEventListener('input', function() {
-    clearTimeout(debTimer); debTimer = setTimeout(doSearch, 180);
-  });
-  $searchInput.addEventListener('focus', function() {
-    if ($searchInput.value.length >= 2) doSearch();
-  });
-  document.addEventListener('click', function(e) {
-    if (!e.target.closest('.search-wrap')) $searchResults.classList.remove('visible');
-  });
-
-  function doSearch() {
-    var q = $searchInput.value.trim().toLowerCase();
-    if (q.length < 2) { $searchResults.classList.remove('visible'); return; }
-    var results = [];
-    for (var code in state.muniData) {
-      var d = state.muniData[code];
-      if (d.name && d.name.toLowerCase().indexOf(q) !== -1) {
-        results.push({ code:code, name:d.name, pop:d.pop });
-        if (results.length >= 30) break;
-      }
-    }
-    results.sort(function(a,b) {
-      var aS = a.name.toLowerCase().indexOf(q)===0?0:1;
-      var bS = b.name.toLowerCase().indexOf(q)===0?0:1;
-      return aS !== bS ? aS-bS : a.name.localeCompare(b.name,'pt-BR');
-    });
-    if (!results.length) {
-      $searchResults.innerHTML = '<div class="search-item"><span class="name" style="color:var(--text-muted)">Nenhum resultado</span></div>';
-    } else {
-      $searchResults.innerHTML = results.map(function(r) {
-        return '<div class="search-item" data-code="'+r.code+'"><span class="name">'+hlMatch(r.name,q)+'</span><span class="pop">'+fmtPop(r.pop)+'</span></div>';
-      }).join('');
-    }
-    $searchResults.classList.add('visible');
-    $searchResults.querySelectorAll('.search-item[data-code]').forEach(function(div) {
-      div.addEventListener('click', function() {
-        var code = div.dataset.code;
-        selectCode(code); updateStats();
-        var d = state.muniData[code];
-        if (d && d.layer) map.fitBounds(d.layer.getBounds(),{maxZoom:10,padding:[40,40]});
-        $searchResults.classList.remove('visible');
-        $searchInput.value = '';
-      });
-    });
-  }
-  function hlMatch(t,q) {
-    var i = t.toLowerCase().indexOf(q);
-    return i===-1?t:t.substring(0,i)+'<strong>'+t.substring(i,i+q.length)+'</strong>'+t.substring(i+q.length);
-  }
-
-  // ─── Radius controls ───
-  $radiusBtn.addEventListener('click', function() {
-    state.radiusMode = !state.radiusMode;
-    dbg('Modo raio: ' + (state.radiusMode ? 'ATIVADO' : 'desativado'));
-    $radiusBtn.textContent = state.radiusMode ? 'Cancelar' : 'Ativar raio';
-    $radiusBtn.classList.toggle('active', state.radiusMode);
-    $radiusBanner.classList.toggle('visible', state.radiusMode);
-    map.getContainer().style.cursor = state.radiusMode ? 'crosshair' : '';
-  });
-
-  // Click no mapa fora de polígonos (oceano, etc.)
-  map.on('click', function(e) {
-    if (!state.radiusMode) return;
-    dbg('Click no mapa (fora de polígono) no modo raio');
-    executeRadius(e.latlng);
-  });
-
-  $clearRadius.addEventListener('click', clearRadiusVisuals);
-  $clearAll.addEventListener('click', function() {
-    clearRadiusVisuals(); deselectAll(); exitRadiusMode();
-  });
-  $sidebarToggle.addEventListener('click', function() {
-    $sidebar.classList.toggle('collapsed');
-    setTimeout(function() { map.invalidateSize(); }, 350);
-  });
-
-  init();
-})();
-</script>
+  <script type="module" src="/src/main.js"></script>
 </body>
 </html>

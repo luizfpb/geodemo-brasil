@@ -1,0 +1,321 @@
+/* ═══════════════════════════════════════════════════════
+   map.css — Mapa, tooltips, legenda, overlays
+   ═══════════════════════════════════════════════════════ */
+
+/* ─── Map container ─── */
+
+#map-container {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+#map {
+  width: 100%;
+  height: 100%;
+  background: #e8e8e8;
+}
+
+/* ─── Radius banner ─── */
+
+#radius-banner {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1050;
+  background: var(--color-radius);
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 600;
+  display: none;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+}
+
+#radius-banner.visible {
+  display: block;
+}
+
+/* ─── Tooltip ─── */
+
+.muni-tooltip {
+  background: var(--bg-secondary) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text-primary) !important;
+  font-family: var(--font-body) !important;
+  font-size: 12px !important;
+  padding: 6px 10px !important;
+  border-radius: var(--radius-sm) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+  max-width: 260px !important;
+}
+
+.muni-tooltip .tooltip-name {
+  font-weight: 600;
+}
+
+.muni-tooltip .tooltip-line {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--accent-light);
+  margin-top: 2px;
+}
+
+.muni-tooltip .tooltip-line.secondary {
+  color: var(--text-secondary);
+}
+
+.leaflet-tooltip-top::before {
+  border-top-color: var(--border) !important;
+}
+
+.leaflet-tooltip-bottom::before {
+  border-bottom-color: var(--border) !important;
+}
+
+/* ─── Legend ─── */
+
+.pop-legend {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  font-family: var(--font-body);
+  min-width: 160px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.legend-title {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.legend-bar {
+  display: flex;
+  height: 12px;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.legend-stop {
+  flex: 1;
+}
+
+.legend-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: var(--space-xs);
+  font-size: 10px;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+}
+
+/* ─── Loading overlay ─── */
+
+#loading-overlay {
+  position: absolute;
+  inset: 0;
+  background: var(--bg-primary);
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.4s;
+}
+
+#loading-overlay.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.loader-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+
+.progress-bar-wrap {
+  width: 280px;
+  height: 6px;
+  background: var(--bg-tertiary);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.progress-bar {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 3px;
+  width: 0%;
+  transition: width 0.4s ease;
+}
+
+#loading-status {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+#loading-error {
+  margin-top: 16px;
+  padding: 12px 16px;
+  background: var(--color-danger-dim);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-md);
+  color: var(--color-danger);
+  font-size: 12px;
+  max-width: 400px;
+  text-align: center;
+  display: none;
+}
+
+#loading-error.visible {
+  display: block;
+}
+
+#dismiss-error {
+  margin-top: 12px;
+  padding: 6px 14px;
+  background: var(--color-danger);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: #fff;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+/* ─── Comparison panel ─── */
+
+#comparison-panel {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1050;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  width: min(90vw, 700px);
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.comparison-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.comparison-header h2 {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+#comparison-content {
+  padding: 12px 16px;
+}
+
+#comparison-charts {
+  padding: 0 16px 16px;
+}
+
+.comp-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.comp-table th {
+  text-align: left;
+  padding: 6px 8px;
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--border);
+}
+
+.comp-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.comp-table td:first-child {
+  font-family: var(--font-body);
+  color: var(--text-secondary);
+}
+
+.comp-table .col-a {
+  color: var(--color-group-a);
+}
+
+.comp-table .col-b {
+  color: var(--color-group-b);
+}
+
+.comp-chart-wrap {
+  margin-top: 12px;
+  height: 200px;
+}
+
+/* ─── Debug log ─── */
+
+#debug-log {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  z-index: 1200;
+  background: rgba(0, 0, 0, 0.85);
+  color: #0f0;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  max-width: 360px;
+  max-height: 120px;
+  overflow-y: auto;
+  pointer-events: none;
+  display: none;
+}
+
+#debug-log.visible {
+  display: block;
+}
+
+/* ─── Leaflet overrides ─── */
+
+.leaflet-control-zoom a {
+  background: #fff !important;
+  color: #333 !important;
+  border-color: #ccc !important;
+}
+
+.leaflet-control-zoom a:hover {
+  background: #f0f0f0 !important;
+  color: #111 !important;
+}
+
+.leaflet-control-attribution {
+  background: rgba(255, 255, 255, 0.7) !important;
+  color: #666 !important;
+  font-size: 10px !important;
+}
+
+.leaflet-control-attribution a {
+  color: #444 !important;
+}
