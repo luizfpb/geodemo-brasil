@@ -4,7 +4,7 @@ Plataforma interativa de análise geodemográfica dos 5.570 municípios brasilei
 
 ![Screenshot do mapa](public/screenshot.png)
 
-**[Demo ao vivo](https://luizfpb.github.io/mapa-municipios-brasil/)**
+**[Demo ao vivo](https://luizfpb.github.io/geodemo-brasil/)**
 
 ---
 
@@ -52,8 +52,8 @@ Plataforma interativa de análise geodemográfica dos 5.570 municípios brasilei
 ### Instalação
 
 ```bash
-git clone https://github.com/luizfpb/mapa-municipios-brasil
-cd mapa-municipios-brasil
+git clone https://github.com/luizfpb/geodemo-brasil
+cd geodemo-brasil
 npm install
 ```
 
