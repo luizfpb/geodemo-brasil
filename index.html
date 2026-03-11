@@ -160,6 +160,17 @@
   .leaflet-tooltip-top:before{border-top-color:var(--border)!important}
   .leaflet-tooltip-bottom:before{border-bottom-color:var(--border)!important}
 
+  /* Legenda coroplética */
+  .pop-legend{
+    background:var(--bg-secondary);border:1px solid var(--border);border-radius:6px;
+    padding:10px 12px;font-family:var(--font-body);min-width:160px;
+    box-shadow:0 2px 8px rgba(0,0,0,.4);
+  }
+  .legend-title{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin-bottom:6px}
+  .legend-bar{display:flex;height:12px;border-radius:3px;overflow:hidden}
+  .legend-stop{flex:1}
+  .legend-labels{display:flex;justify-content:space-between;margin-top:4px;font-size:10px;color:var(--text-secondary);font-family:var(--font-mono)}
+
   /* Debug log no canto inferior direito */
   #debug-log{
     position:absolute;bottom:8px;right:8px;z-index:1200;
@@ -301,9 +312,52 @@
   map.getPane('stateBordersPane').style.zIndex = 450;
   map.getPane('stateBordersPane').style.pointerEvents = 'none';
 
-  var STYLE_DEFAULT  = { weight: 0.4, color: '#555', fillColor: '#b0b8c8', fillOpacity: 0.25 };
-  var STYLE_HOVER    = { weight: 1.2, color: '#333', fillColor: '#d0d6e0', fillOpacity: 0.45 };
+  var STYLE_NO_DATA  = { weight: 0.4, color: '#555', fillColor: '#b0b8c8', fillOpacity: 0.25 };
   var STYLE_SELECTED = { weight: 1, color: '#27ae60', fillColor: '#2ecc71', fillOpacity: 0.5 };
+
+  // ─── Escala coroplética (branco → amarelo → laranja → vermelho) ───
+  var POP_STOPS = [
+    { val: 0,    r: 255, g: 255, b: 255 },  // branco
+    { val: 0.25, r: 255, g: 255, b: 178 },  // amarelo claro
+    { val: 0.45, r: 254, g: 204, b: 92  },  // amarelo
+    { val: 0.65, r: 253, g: 141, b: 60  },  // laranja
+    { val: 0.85, r: 240, g: 59,  b: 32  },  // vermelho-laranja
+    { val: 1,    r: 189, g: 0,   b: 38  }   // vermelho escuro
+  ];
+
+  function popToColor(pop) {
+    if (pop == null || isNaN(pop) || pop <= 0) return null;
+    // Escala logarítmica: log10(800)≈2.9, log10(12000000)≈7.08
+    var minLog = Math.log10(800), maxLog = Math.log10(12000000);
+    var t = (Math.log10(Math.max(pop, 800)) - minLog) / (maxLog - minLog);
+    t = Math.max(0, Math.min(1, t));
+    // Interpolar entre stops
+    for (var i = 1; i < POP_STOPS.length; i++) {
+      if (t <= POP_STOPS[i].val) {
+        var a = POP_STOPS[i - 1], b = POP_STOPS[i];
+        var f = (t - a.val) / (b.val - a.val);
+        var r = Math.round(a.r + (b.r - a.r) * f);
+        var g = Math.round(a.g + (b.g - a.g) * f);
+        var bl = Math.round(a.b + (b.b - a.b) * f);
+        return 'rgb(' + r + ',' + g + ',' + bl + ')';
+      }
+    }
+    var last = POP_STOPS[POP_STOPS.length - 1];
+    return 'rgb(' + last.r + ',' + last.g + ',' + last.b + ')';
+  }
+
+  function getPopStyle(code) {
+    var d = state.muniData[code];
+    var c = d ? popToColor(d.pop) : null;
+    if (!c) return STYLE_NO_DATA;
+    return { weight: 0.4, color: '#555', fillColor: c, fillOpacity: 0.7 };
+  }
+  function getPopHoverStyle(code) {
+    var d = state.muniData[code];
+    var c = d ? popToColor(d.pop) : null;
+    if (!c) return { weight: 1.2, color: '#333', fillColor: '#d0d6e0', fillOpacity: 0.45 };
+    return { weight: 1.2, color: '#333', fillColor: c, fillOpacity: 0.9 };
+  }
 
   function fmtPop(n) {
     if (n == null || isNaN(n)) return '\u2014';
@@ -404,7 +458,7 @@
     if (!layer) return;
     if (state.selected.has(code)) {
       state.selected.delete(code);
-      layer.setStyle(STYLE_DEFAULT);
+      layer.setStyle(getPopStyle(code));
     } else {
       state.selected.add(code);
       layer.setStyle(STYLE_SELECTED);
@@ -420,7 +474,7 @@
   }
   function deselectAll() {
     state.selected.forEach(function(code) {
-      var l = state.muniLayers[code]; if (l) l.setStyle(STYLE_DEFAULT);
+      var l = state.muniLayers[code]; if (l) l.setStyle(getPopStyle(code));
     });
     state.selected.clear();
     updateStats();
@@ -514,7 +568,7 @@
       setProgress(50, 'Renderizando ' + geojson.features.length + ' municípios...');
 
       L.geoJSON(geojson, {
-        style: function() { return STYLE_DEFAULT; },
+        style: function() { return STYLE_NO_DATA; },
         onEachFeature: function(feature, layer) {
           var code = feature.properties.codarea;
           if (!code) return;
@@ -525,10 +579,10 @@
             className:'muni-tooltip', sticky:true, direction:'top', offset:[0,-8]
           });
           layer.on('mouseover', function() {
-            if (!state.selected.has(code)) this.setStyle(STYLE_HOVER);
+            if (!state.selected.has(code)) this.setStyle(getPopHoverStyle(code));
           });
           layer.on('mouseout', function() {
-            if (!state.selected.has(code)) this.setStyle(STYLE_DEFAULT);
+            if (!state.selected.has(code)) this.setStyle(getPopStyle(code));
           });
           layer.on('click', function(e) {
             if (state.radiusMode) {
@@ -632,6 +686,36 @@
     });
   }
 
+  // ─── Aplicar cores coropléticas após carregar população ───
+  function applyChoropleth() {
+    for (var code in state.muniLayers) {
+      if (!state.selected.has(code)) {
+        state.muniLayers[code].setStyle(getPopStyle(code));
+      }
+    }
+    dbg('Coroplético aplicado.');
+    addLegend();
+  }
+
+  function addLegend() {
+    var legend = L.control({ position: 'bottomleft' });
+    legend.onAdd = function() {
+      var div = L.DomUtil.create('div', 'pop-legend');
+      var labels = ['< 1 mil', '5 mil', '25 mil', '100 mil', '500 mil', '2 mi', '10 mi+'];
+      var vals = [800, 5000, 25000, 100000, 500000, 2000000, 10000000];
+      var html = '<div class="legend-title">População</div><div class="legend-bar">';
+      for (var i = 0; i < vals.length; i++) {
+        html += '<div class="legend-stop" style="background:' + popToColor(vals[i]) + '"></div>';
+      }
+      html += '</div><div class="legend-labels">';
+      html += '<span>' + labels[0] + '</span><span>' + labels[labels.length - 1] + '</span>';
+      html += '</div>';
+      div.innerHTML = html;
+      return div;
+    };
+    legend.addTo(map);
+  }
+
   // ─── Init ───
   function init() {
     // Verificar se libs carregaram
@@ -646,6 +730,7 @@
     loadMesh().then(function() {
       return Promise.all([loadNames(), loadPopulation(), loadStateBorders()]);
     }).then(function() {
+      applyChoropleth();
       hideOverlay();
     }).catch(function(err) {
       console.error('Erro fatal:', err);
