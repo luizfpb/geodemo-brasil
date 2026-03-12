@@ -27,9 +27,12 @@ export function createMap() {
   map = L.map('map', {
     center: [-14.2, -51.9],
     zoom: 4,
+    minZoom: 3,
+    maxZoom: 18,
     renderer: L.canvas({ padding: 0.5 }),
     zoomControl: false,
     preferCanvas: true,
+    maxBounds: [[-85, -200], [85, 200]],
     maxBoundsViscosity: 1.0,
   });
 
@@ -41,6 +44,7 @@ export function createMap() {
     attribution: '&copy; <a href="https://carto.com/">CARTO</a> | IBGE',
     subdomains: 'abcd',
     maxZoom: 18,
+    noWrap: true,
   }).addTo(map);
 
   // Pane para bordas estaduais (acima dos polígonos, abaixo dos tooltips)
