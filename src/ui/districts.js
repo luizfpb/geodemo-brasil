@@ -4,9 +4,14 @@
 
    Carrega geometria de distritos por município quando
    o zoom é suficiente. Renderiza como overlay tracejado.
-   Remove ao dar zoom out.
 
-   Endpoint: /api/v3/malhas/municipios/{cod}?intrarregiao=distrito
+   Fluxo:
+   1. API Localidades → lista de distritos do município
+   2. API Malhas v2  → geometria de cada distrito
+
+   Endpoints:
+   - /api/v1/localidades/municipios/{cod}/distritos
+   - /api/v2/malhas/{codDistrito}?formato=application/vnd.geo+json
 */
 
 import L from 'leaflet';
@@ -17,15 +22,20 @@ import { dbg } from '../utils/debug.js';
 const MIN_ZOOM = 7;
 
 /** Máximo de municípios carregando em paralelo */
-const MAX_CONCURRENT = 6;
+const MAX_CONCURRENT = 4;
 
-/** Cache de GeoJSON por município (null = já tentou e não tem distritos) */
+/**
+ * Cache por município:
+ *   undefined = nunca tentou
+ *   null      = tentou, sem distritos (ou só 1)
+ *   GeoJSON   = distritos prontos
+ */
 const cache = new Map();
 
 /** Layers ativos no mapa: Map<codMuni, L.GeoJSON> */
 const activeLayers = new Map();
 
-/** Municípios atualmente sendo baixados */
+/** Municípios sendo baixados agora */
 const loading = new Set();
 
 /** Toggle global */
@@ -73,12 +83,20 @@ function update() {
     }
   });
 
-  // Carregar municípios visíveis que ainda não estão no mapa
+  // Carregar municípios visíveis
   let queued = 0;
   for (const code of visibleMunis) {
     if (activeLayers.has(code)) continue;
     if (loading.has(code)) continue;
+
+    // Já tentou e não tem distritos
     if (cache.has(code) && cache.get(code) === null) continue;
+
+    // Já tem cache, renderizar direto
+    if (cache.has(code) && cache.get(code) !== null) {
+      renderLayer(code, cache.get(code));
+      continue;
+    }
 
     if (queued >= MAX_CONCURRENT) break;
     loadMuni(code);
@@ -108,71 +126,108 @@ function getVisibleMunis(bounds) {
 
 /**
  * Baixa e renderiza distritos de um município.
+ *
+ * Passo 1: buscar lista de distritos via API Localidades
+ * Passo 2: buscar geometria de cada distrito via API Malhas v2
  */
 async function loadMuni(code) {
   loading.add(code);
 
   try {
-    let geojson = cache.get(code);
+    const codMuni = code.length >= 7 ? code.substring(0, 7) : code;
 
-    if (geojson === undefined) {
-      const codMuni = code.length === 7 ? code : code.substring(0, 7);
+    // 1. Listar distritos do município
+    const listUrl =
+      `https://servicodados.ibge.gov.br/api/v1/localidades/municipios/${codMuni}/distritos`;
 
-      const url =
-        `https://servicodados.ibge.gov.br/api/v3/malhas/municipios/${codMuni}` +
-        `?formato=application/json&qualidade=minima&intrarregiao=distrito`;
-
-      const resp = await fetch(url);
-      if (!resp.ok) {
-        dbg(`Distritos ${codMuni}: HTTP ${resp.status}`, 'warn');
-        cache.set(code, null);
-        return;
-      }
-
-      const topo = await resp.json();
-      const objKey = Object.keys(topo.objects)[0];
-      if (!objKey) {
-        cache.set(code, null);
-        return;
-      }
-
-      geojson = window.topojson.feature(topo, topo.objects[objKey]);
-
-      // Só exibir se o município tem 2+ distritos
-      if (geojson.features.length < 2) {
-        cache.set(code, null);
-        return;
-      }
-
-      cache.set(code, geojson);
-      dbg(`Distritos ${codMuni}: ${geojson.features.length} polígonos`);
+    const listResp = await fetch(listUrl);
+    if (!listResp.ok) {
+      dbg(`Distritos lista ${codMuni}: HTTP ${listResp.status}`, 'warn');
+      cache.set(code, null);
+      return;
     }
 
-    if (!geojson) return;
+    const distritos = await listResp.json();
+
+    // Se tem só 1 distrito, não vale renderizar (é o próprio município)
+    if (!Array.isArray(distritos) || distritos.length < 2) {
+      cache.set(code, null);
+      return;
+    }
+
+    // 2. Buscar geometria de cada distrito
+    const features = [];
+
+    for (const dist of distritos) {
+      const distCode = String(dist.id);
+
+      try {
+        const geoUrl =
+          `https://servicodados.ibge.gov.br/api/v2/malhas/${distCode}?formato=application/vnd.geo+json`;
+
+        const geoResp = await fetch(geoUrl);
+        if (!geoResp.ok) continue;
+
+        const geojson = await geoResp.json();
+
+        if (geojson.type === 'FeatureCollection' && geojson.features) {
+          for (const f of geojson.features) {
+            f.properties = f.properties || {};
+            f.properties.nome = dist.nome;
+            f.properties.codDistrito = distCode;
+            features.push(f);
+          }
+        } else if (geojson.type === 'Feature') {
+          geojson.properties = geojson.properties || {};
+          geojson.properties.nome = dist.nome;
+          geojson.properties.codDistrito = distCode;
+          features.push(geojson);
+        }
+      } catch (_) {
+        // Distrito individual falhou, continuar com os outros
+      }
+    }
+
+    if (features.length < 2) {
+      cache.set(code, null);
+      return;
+    }
+
+    const fc = { type: 'FeatureCollection', features };
+    cache.set(code, fc);
+    dbg(`Distritos ${codMuni}: ${features.length} de ${distritos.length}`);
+
     if (!enabled) return;
-    if (activeLayers.has(code)) return;
-
-    const layer = L.geoJSON(geojson, {
-      style: () => ({
-        weight: 1.4,
-        color: '#f39c12',
-        fillColor: 'transparent',
-        fillOpacity: 0,
-        opacity: 0.7,
-        dashArray: '6 4',
-      }),
-      interactive: false,
-      pane: 'districtBordersPane',
-    });
-
-    layer.addTo(getMap());
-    activeLayers.set(code, layer);
+    renderLayer(code, fc);
   } catch (err) {
     dbg(`Distritos ${code} falhou: ${err.message}`, 'warn');
     cache.set(code, null);
   } finally {
     loading.delete(code);
   }
+}
+
+/**
+ * Renderiza um FeatureCollection de distritos no mapa.
+ */
+function renderLayer(code, geojson) {
+  if (activeLayers.has(code)) return;
+
+  const layer = L.geoJSON(geojson, {
+    style: () => ({
+      weight: 1.4,
+      color: '#f39c12',
+      fillColor: 'transparent',
+      fillOpacity: 0,
+      opacity: 0.7,
+      dashArray: '6 4',
+    }),
+    interactive: false,
+    pane: 'districtBordersPane',
+  });
+
+  layer.addTo(getMap());
+  activeLayers.set(code, layer);
 }
 
 /**
