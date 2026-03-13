@@ -173,3 +173,5 @@ export function aggregate(codes) {
   }
   return { count: codes.length, totalPop };
 }
+
+window.__geodemo_state = { muniLayers };

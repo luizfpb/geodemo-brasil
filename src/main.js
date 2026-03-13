@@ -17,6 +17,7 @@ import { createMap, getMap } from './map.js';
 import * as state from './state.js';
 import * as data from './data.js';
 import * as choropleth from './choropleth.js';
+import * as districts from './ui/districts.js';
 import { renderMunicipalities, renderStateBorders, refreshStyles } from './layers.js';
 import { dbg } from './utils/debug.js';
 
@@ -77,6 +78,7 @@ async function boot() {
   groups.init();
   comparison.init();
   exportModule.init();
+  districts.init();
 
   // Reagir a mudanças de seleção para atualizar estilos
   state.on('selection:changed', refreshStyles);

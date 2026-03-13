@@ -53,6 +53,12 @@ export function createMap() {
   bordersPane.style.zIndex = '450';
   bordersPane.style.pointerEvents = 'none';
 
+  // Pane para bordas distritais (entre municípios e estados)
+  map.createPane('districtBordersPane');
+  const districtsPane = map.getPane('districtBordersPane');
+  districtsPane.style.zIndex = '440';
+  districtsPane.style.pointerEvents = 'none';
+  
   return map;
 }
 
