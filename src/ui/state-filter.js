@@ -43,12 +43,8 @@ function buildDropdown() {
   if (built) return;
 
   const ufs = new Set();
-  const ufCounts = new Map();
   state.muniData.forEach((d) => {
-    if (d.uf) {
-      ufs.add(d.uf);
-      ufCounts.set(d.uf, (ufCounts.get(d.uf) || 0) + 1);
-    }
+    if (d.uf) ufs.add(d.uf);
   });
 
   const sorted = UF_ORDER.filter((uf) => ufs.has(uf));
@@ -74,22 +70,21 @@ function buildDropdown() {
   $dropdown = document.createElement('div');
   $dropdown.className = 'state-filter-dropdown hidden';
 
-  $dropdown.appendChild(createCheckItem('__all__', 'Todos', true, null));
+  $dropdown.appendChild(createCheckItem('__all__', 'Todos', true));
 
   const sep = document.createElement('div');
   sep.className = 'state-filter-sep';
   $dropdown.appendChild(sep);
 
   for (const uf of sorted) {
-    const count = ufCounts.get(uf) || 0;
-    $dropdown.appendChild(createCheckItem(uf, uf, false, count));
+    $dropdown.appendChild(createCheckItem(uf, uf, false));
   }
 
   wrap.appendChild($dropdown);
   $container.appendChild(wrap);
 }
 
-function createCheckItem(value, label, checked, count) {
+function createCheckItem(value, label, checked) {
   const wrap = document.createElement('label');
   wrap.className = 'state-filter-item';
 
@@ -100,19 +95,10 @@ function createCheckItem(value, label, checked, count) {
   cb.addEventListener('change', () => onCheckChange(value, cb.checked));
 
   const span = document.createElement('span');
-  span.className = 'state-filter-label';
   span.textContent = label;
 
   wrap.appendChild(cb);
   wrap.appendChild(span);
-
-  if (count != null) {
-    const badge = document.createElement('span');
-    badge.className = 'state-filter-count';
-    badge.textContent = count.toLocaleString('pt-BR');
-    wrap.appendChild(badge);
-  }
-
   return wrap;
 }
 

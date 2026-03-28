@@ -255,15 +255,6 @@
   flex-shrink: 0;
 }
 
-.state-filter-label { flex: 1; }
-
-.state-filter-count {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  color: var(--text-muted);
-  flex-shrink: 0;
-}
-
 .state-filter-sep {
   height: 1px;
   background: var(--border);

@@ -6,6 +6,7 @@
 
 import * as state from '../state.js';
 import * as data from '../data.js';
+import { matchesFilter } from './state-filter.js';
 import { loadChartJS } from './charts.js';
 import { dbg } from '../utils/debug.js';
 
@@ -35,6 +36,7 @@ export function init() {
   state.on('data:loaded', rebuild);
   state.on('data:ready', () => setTimeout(rebuild, 100));
   state.on('selection:changed', rebuild);
+  state.on('filter:changed', rebuild);
   state.on('hover:municipality', onHover);
 }
 
@@ -42,11 +44,11 @@ function rebuild() {
   const themeId = state.ui.activeTheme;
   const subvar = state.ui.activeSubvar;
 
-  // decidir se mostra todos ou so os selecionados
+  // prioridade: selecao > filtro UF > todos
   const hasSelection = state.selection.size > 0;
-  const codes = hasSelection ? [...state.selection.keys()] : null;
+  const hasUFFilter = state.ui.activeUFs && state.ui.activeUFs.size > 0;
 
-  const values = collectValues(themeId, subvar, codes);
+  const values = collectValues(themeId, subvar, hasSelection, hasUFFilter);
 
   if (values.length < 2) {
     hideChart();
@@ -58,21 +60,30 @@ function rebuild() {
   currentBins = bins;
   highlightedBin = -1;
 
-  updateTitle(themeId, hasSelection);
+  updateTitle(themeId, hasSelection, hasUFFilter, values.length);
   renderChart(bins, themeId);
 }
 
-function collectValues(themeId, subvar, codes) {
+function collectValues(themeId, subvar, hasSelection, hasUFFilter) {
   const values = [];
 
-  if (codes) {
+  if (hasSelection) {
     // so municipios selecionados
-    for (const code of codes) {
+    for (const code of state.selection.keys()) {
       const val = themeId === 'populacao'
         ? state.muniData.get(code)?.pop
         : data.getThemeValue(code, themeId, subvar);
       if (val != null && !isNaN(val)) values.push(val);
     }
+  } else if (hasUFFilter) {
+    // municipios das UFs filtradas
+    state.muniData.forEach((d, code) => {
+      if (!matchesFilter(code)) return;
+      const val = themeId === 'populacao'
+        ? d.pop
+        : data.getThemeValue(code, themeId, subvar);
+      if (val != null && !isNaN(val)) values.push(val);
+    });
   } else {
     // todos
     if (themeId === 'populacao') {
@@ -171,11 +182,20 @@ function getBorderColors(bins, highlighted) {
   return bins.map((_, i) => (i === highlighted ? '#fff' : 'transparent'));
 }
 
-function updateTitle(themeId, hasSelection) {
+function updateTitle(themeId, hasSelection, hasUFFilter, count) {
   if (!$title) return;
   const theme = data.THEMES[themeId];
   const label = theme?.label || themeId;
-  const scope = hasSelection ? ` (${state.selection.size} selecionados)` : ' (todos)';
+
+  let scope = ' (todos)';
+  if (hasSelection) {
+    scope = ` (${state.selection.size} selecionados)`;
+  } else if (hasUFFilter) {
+    const ufs = [...state.ui.activeUFs];
+    const ufStr = ufs.length <= 3 ? ufs.join(', ') : `${ufs.length} UFs`;
+    scope = ` (${ufStr}: ${count.toLocaleString('pt-BR')} munic.)`;
+  }
+
   $title.textContent = `${label}${scope}`;
 }
 
