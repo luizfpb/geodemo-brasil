@@ -11,7 +11,6 @@ global.window = global.window || {};
 let state;
 
 beforeEach(async () => {
-  // re-importar nao funciona bem com ESM, entao limpamos o estado manualmente
   if (!state) {
     state = await import('../src/state.js');
   }
@@ -22,6 +21,8 @@ beforeEach(async () => {
   state.ui.activeTheme = 'populacao';
   state.ui.activeSubvar = null;
   state.ui.activeGroup = 'A';
+  state.ui.activeUFs = null;
+  state.ui.hoveredMuni = null;
 });
 
 describe('select / deselect', () => {
@@ -133,5 +134,15 @@ describe('ensure', () => {
     const d = state.ensure('1234567');
     assert.equal(d.name, 'Test');
     assert.equal(d.pop, 100);
+  });
+});
+
+describe('ui state', () => {
+  it('activeUFs comeca null', () => {
+    assert.equal(state.ui.activeUFs, null);
+  });
+
+  it('hoveredMuni comeca null', () => {
+    assert.equal(state.ui.hoveredMuni, null);
   });
 });

@@ -1,10 +1,11 @@
 // ui/ranking.js -- sidebar com top 30 municipios pelo indicador ativo
 //
-// abre/fecha com botao toggle, atualiza quando tema ou subvar muda,
+// abre/fecha com botao toggle, atualiza quando tema, subvar ou filtro de UF muda,
 // click no item navega ate o municipio no mapa
 
 import * as state from '../state.js';
 import * as data from '../data.js';
+import { matchesFilter } from './state-filter.js';
 import { getMap } from '../map.js';
 import { fmtPop, fmtDec, fmtPercent, fmtCurrency, escapeHtml } from '../utils/format.js';
 
@@ -16,7 +17,6 @@ let $toggleBtn = null;
 let visible = false;
 
 export function init() {
-  // criar o DOM do ranking (inserido no map-container)
   const container = document.getElementById('map-container');
 
   $toggleBtn = document.createElement('button');
@@ -45,6 +45,7 @@ export function init() {
   state.on('theme:changed', refresh);
   state.on('subvar:changed', refresh);
   state.on('data:loaded', refresh);
+  state.on('filter:changed', refresh);
 }
 
 function toggle() {
@@ -71,17 +72,17 @@ function refresh() {
   const subvar = state.ui.activeSubvar;
   const theme = data.THEMES[themeId];
 
-  // juntar todos os municipios com valor valido
   const entries = [];
 
   if (themeId === 'populacao') {
     state.muniData.forEach((d, code) => {
-      if (d.pop != null) {
+      if (d.pop != null && matchesFilter(code)) {
         entries.push({ code, name: d.name || code, value: d.pop });
       }
     });
   } else {
     state.muniData.forEach((d, code) => {
+      if (!matchesFilter(code)) return;
       const val = data.getThemeValue(code, themeId, subvar);
       if (val != null && !isNaN(val)) {
         entries.push({ code, name: d.name || code, value: val });
@@ -89,7 +90,6 @@ function refresh() {
     });
   }
 
-  // descendente
   entries.sort((a, b) => b.value - a.value);
   const top = entries.slice(0, MAX_ITEMS);
 
@@ -97,7 +97,8 @@ function refresh() {
     ? theme?.subvars?.find((s) => s.id === subvar)?.label || theme?.label || themeId
     : theme?.label || themeId;
 
-  $panel.querySelector('.ranking-title').textContent = `Top ${top.length} — ${label}`;
+  const filterSuffix = state.ui.activeUFs ? ` (${[...state.ui.activeUFs].join(', ')})` : '';
+  $panel.querySelector('.ranking-title').textContent = `Top ${top.length} — ${label}${filterSuffix}`;
 
   if (top.length === 0) {
     $list.innerHTML = '<div class="ranking-empty">Sem dados para este tema.</div>';
@@ -118,7 +119,6 @@ function refresh() {
     })
     .join('');
 
-  // click navega ate o municipio
   $list.querySelectorAll('.ranking-item').forEach((el) => {
     el.addEventListener('click', () => {
       const code = el.dataset.code;

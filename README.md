@@ -14,11 +14,14 @@ Plataforma interativa de análise geodemográfica dos 5.570 municípios brasilei
 
 - **Mapa coroplético interativo** com malha municipal completa (renderização via Canvas)
 - **Camadas temáticas**: população, densidade, faixa etária, educação, renda, urbanização
+- **Histograma de distribuição** com bins significativos por tema, destaque por hover e distribuição dinâmica dos municípios selecionados
+- **Filtro por estado** com multiselect de UFs, filtrando ranking e busca
+- **Modo claro/escuro** com toggle, persistência em localStorage e detecção de preferência do sistema
 - **Busca por nome** com autocomplete e navegação por teclado
 - **Seleção individual** por clique (toggle)
 - **Seleção por raio** geográfico (1–2000 km) com interseção via Turf.js
 - **Grupos de comparação** (A/B) com painel side-by-side e gráficos
-- **Ranking** dos top 30 municípios pelo indicador ativo
+- **Ranking** dos top 30 municípios pelo indicador ativo (filtrável por UF)
 - **Permalink** via URL hash (compartilhável: tema, subvariável e seleção)
 - **Exportação** dos dados selecionados em CSV e Excel (.xlsx)
 - **Painel de estatísticas** com contagem e população agregada
@@ -51,6 +54,7 @@ Plataforma interativa de análise geodemográfica dos 5.570 municípios brasilei
 - **Tiles**: [CARTO Basemaps](https://carto.com/basemaps)
 - **CI/CD**: GitHub Actions + GitHub Pages
 - **Linting**: ESLint + Prettier
+- **Testes E2E**: [Playwright](https://playwright.dev/)
 
 ## Setup
 
@@ -105,11 +109,25 @@ npm run format:check  # Verificar formatação
 
 ### Testes
 
+Testes unitários (Node.js nativo):
+
 ```bash
 npm test
 ```
 
-Testes unitários usando `node:test` (nativo do Node 18+), cobrindo funções de formatação e lógica de estado.
+Testes end-to-end (Playwright):
+
+```bash
+npx playwright install --with-deps chromium   # Primeira vez
+npm run test:e2e
+```
+
+Os testes E2E rodam contra o preview server (`npm run preview`) automaticamente. Cobrem:
+
+- **boot**: carregamento do mapa, overlay, malha com 5570+ layers
+- **theme**: troca de camada temática, legenda, subvariáveis
+- **selection**: busca e seleção de municípios, contadores
+- **export**: download de CSV com municípios selecionados
 
 Testes do pipeline Python:
 
@@ -138,6 +156,9 @@ python -m unittest tests/test_pipeline.py
 │   │   ├── selected-list.js
 │   │   ├── radius.js
 │   │   ├── theme-selector.js
+│   │   ├── theme-toggle.js   # Toggle claro/escuro
+│   │   ├── histogram.js      # Histograma de distribuição
+│   │   ├── state-filter.js   # Filtro por UF
 │   │   ├── groups.js
 │   │   ├── comparison.js
 │   │   ├── export.js
@@ -151,10 +172,16 @@ python -m unittest tests/test_pipeline.py
 ├── tests/
 │   ├── format.test.js
 │   ├── state.test.js
-│   └── test_pipeline.py
+│   ├── test_pipeline.py
+│   └── e2e/              # Testes Playwright
+│       ├── boot.spec.js
+│       ├── theme.spec.js
+│       ├── selection.spec.js
+│       └── export.spec.js
 ├── public/data/          # JSONs gerados pelo pipeline
 ├── index.html
 ├── vite.config.js
+├── playwright.config.js
 ├── .eslintrc.json
 ├── .prettierrc
 └── package.json

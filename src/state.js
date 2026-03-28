@@ -43,6 +43,8 @@ export const ui = {
   meshLoaded: false,
   namesLoaded: false,
   popLoaded: false,
+  activeUFs: null,       // null = todos, Set<string> = UFs filtradas
+  hoveredMuni: null,     // codigo do municipio em hover, ou null
 };
 
 // -- Helpers de selecao --

@@ -18,10 +18,6 @@ export function renderMunicipalities(map, geojson) {
       const d = state.ensure(code);
       d.layer = layer;
 
-      // area vem do municipios.json (tabela 4714 do SIDRA),
-      // NAO do turf.area() -- a malha "qualidade=minima" e simplificada
-      // demais e da areas completamente erradas
-
       layer.bindTooltip(() => buildTooltip(code), {
         className: 'muni-tooltip',
         sticky: true,
@@ -33,12 +29,16 @@ export function renderMunicipalities(map, geojson) {
         if (!state.selection.has(code)) {
           this.setStyle(choropleth.getHoverStyle(code));
         }
+        state.ui.hoveredMuni = code;
+        state.emit('hover:municipality', code);
       });
 
       layer.on('mouseout', function () {
         if (!state.selection.has(code)) {
           this.setStyle(choropleth.getStyle(code));
         }
+        state.ui.hoveredMuni = null;
+        state.emit('hover:municipality', null);
       });
 
       layer.on('click', (e) => {
@@ -88,7 +88,6 @@ function buildTooltip(code) {
     popLine = `<div class="tooltip-line secondary">${state.ui.popLoaded ? 'sem dados' : 'carregando...'}</div>`;
   }
 
-  // mostra valor do tema ativo se nao for populacao
   let themeLine = '';
   if (themeId !== 'populacao') {
     const value = data.getThemeValue(code, themeId, subvar);

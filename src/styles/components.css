@@ -18,6 +18,10 @@
   pointer-events: none;
 }
 
+[data-theme="light"] .toast {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
 .toast.visible { transform: translateY(0); opacity: 1; }
 .toast.toast-success { border-color: var(--color-selected); }
 .toast.toast-error { border-color: var(--color-danger); }

@@ -5,7 +5,7 @@ import './styles/sidebar.css';
 import './styles/map.css';
 import './styles/components.css';
 
-import { createMap, getMap } from './map.js';
+import { createMap } from './map.js';
 import * as state from './state.js';
 import * as data from './data.js';
 import * as choropleth from './choropleth.js';
@@ -22,6 +22,9 @@ import * as groups from './ui/groups.js';
 import * as comparison from './ui/comparison.js';
 import * as exportModule from './ui/export.js';
 import * as ranking from './ui/ranking.js';
+import * as histogram from './ui/histogram.js';
+import * as stateFilter from './ui/state-filter.js';
+import * as themeToggle from './ui/theme-toggle.js';
 
 const $overlay = document.getElementById('loading-overlay');
 const $progressBar = document.getElementById('progress-bar');
@@ -76,11 +79,9 @@ function restoreFromHash() {
   const aStr = params.get('a');
   const bStr = params.get('b');
 
-  // tema
   if (themeId && data.THEMES[themeId]) {
     const $sel = document.getElementById('theme-select');
     if ($sel) $sel.value = themeId;
-    // o tema sera aplicado pelo themeSelector.init() ou apos carregar
     state.ui.activeTheme = themeId;
   }
 
@@ -88,7 +89,6 @@ function restoreFromHash() {
     state.ui.activeSubvar = subvar;
   }
 
-  // selecao
   if (aStr) {
     for (const code of aStr.split(',')) {
       if (code.trim()) state.selection.set(code.trim(), 'A');
@@ -114,6 +114,8 @@ async function boot() {
 
   const map = createMap();
 
+  // init de todos os modulos de UI
+  themeToggle.init();
   sidebar.init();
   search.init();
   stats.init();
@@ -124,10 +126,11 @@ async function boot() {
   comparison.init();
   exportModule.init();
   ranking.init();
+  histogram.init();
+  stateFilter.init();
 
   state.on('selection:changed', refreshStyles);
 
-  // atualizar hash quando algo muda
   state.on('selection:changed', updateHash);
   state.on('theme:changed', updateHash);
   state.on('subvar:changed', updateHash);
@@ -148,10 +151,12 @@ async function boot() {
       data.loadMetadata(),
     ]);
 
-    // restaurar estado da URL hash (depois que dados carregaram)
+    // todos os dados base carregados: nomes, populacao, areas, UFs
+    // modulos que dependem de dados completos escutam este evento
+    state.emit('data:ready');
+
     restoreFromHash();
 
-    // se o hash pedia um tema diferente de populacao, carregar
     if (state.ui.activeTheme !== 'populacao') {
       await data.loadTheme(state.ui.activeTheme);
     }

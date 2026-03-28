@@ -16,5 +16,5 @@
     "eqeqeq": ["warn", "smart"],
     "no-throw-literal": "error"
   },
-  "ignorePatterns": ["dist/", "node_modules/", "public/data/"]
+  "ignorePatterns": ["dist/", "node_modules/", "public/data/", "tests/e2e/"]
 }

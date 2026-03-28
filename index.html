@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,8 +13,13 @@
   <div id="app">
     <aside id="sidebar">
       <div class="sidebar-header">
-        <h1>GeoDemoBrasil</h1>
-        <p class="sidebar-subtitle">Censo Demográfico 2022 — IBGE</p>
+        <div class="sidebar-header-row">
+          <div>
+            <h1>GeoDemoBrasil</h1>
+            <p class="sidebar-subtitle">Censo Demográfico 2022 — IBGE</p>
+          </div>
+          <button id="theme-toggle-btn" class="btn-icon" title="Alternar tema" aria-label="Alternar tema claro/escuro">&#9790;</button>
+        </div>
       </div>
 
       <div id="stats-panel">
@@ -32,6 +37,11 @@
         </div>
       </div>
 
+      <div class="controls-section" id="state-filter-wrap">
+        <label>Filtrar por estado</label>
+        <span class="state-filter-loading">Carregando...</span>
+      </div>
+
       <div class="controls-section">
         <label for="theme-select">Camada temática</label>
         <select id="theme-select">
@@ -43,6 +53,14 @@
           <option value="urbanizacao">Urbanização</option>
         </select>
         <select id="theme-subvar" class="subvar-select hidden"></select>
+      </div>
+
+      <div class="controls-section histogram-section" id="histogram-wrap">
+        <label>Distribuição</label>
+        <span class="histogram-subtitle" id="histogram-title"></span>
+        <div class="histogram-container">
+          <canvas id="histogram-canvas"></canvas>
+        </div>
       </div>
 
       <div class="controls-section">

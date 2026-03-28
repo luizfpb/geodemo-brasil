@@ -1,6 +1,9 @@
 // ui/search.js -- busca de municipios com autocomplete e navegacao por teclado
+//
+// filtra resultados por UF quando o filtro de estado esta ativo
 
 import * as state from '../state.js';
+import { matchesFilter } from './state-filter.js';
 import { getMap } from '../map.js';
 import { fmtPop, escapeHtml } from '../utils/format.js';
 
@@ -58,13 +61,12 @@ function doSearch() {
   currentResults = [];
 
   state.muniData.forEach((d, code) => {
-    if (d.name && d.name.toLowerCase().includes(qLower)) {
-      currentResults.push({ code, name: d.name, pop: d.pop });
-    }
     if (currentResults.length >= 30) return;
+    if (!d.name || !d.name.toLowerCase().includes(qLower)) return;
+    if (!matchesFilter(code)) return;
+    currentResults.push({ code, name: d.name, pop: d.pop });
   });
 
-  // prefixo primeiro, depois alfabetico
   currentResults.sort((a, b) => {
     const aPrefix = a.name.toLowerCase().startsWith(qLower) ? 0 : 1;
     const bPrefix = b.name.toLowerCase().startsWith(qLower) ? 0 : 1;
