@@ -4,6 +4,7 @@
 // Zero chamadas ao SIDRA em runtime = carregamento rapido.
 // Se o JSON local falhar, tenta IBGE direto como fallback.
 
+import { feature as topoFeature } from 'topojson-client';
 import { fetchRetry, fetchJSON } from './utils/fetch.js';
 import { dbg } from './utils/debug.js';
 import * as state from './state.js';
@@ -95,8 +96,7 @@ export async function loadMesh(onProgress) {
   onProgress(35, 'Processando geometrias...');
   const objKey = Object.keys(topo.objects)[0];
   if (!objKey) throw new Error('TopoJSON vazio');
-  if (typeof window.topojson === 'undefined') throw new Error('topojson nao carregado');
-  const geojson = window.topojson.feature(topo, topo.objects[objKey]);
+  const geojson = topoFeature(topo, topo.objects[objKey]);
   onProgress(50, `Renderizando ${geojson.features.length} municípios...`);
   return geojson;
 }
@@ -106,7 +106,7 @@ export async function loadStateBorders() {
     const topo = await loadLocalOrFallback('states.json', FALLBACK.states);
     const objKey = Object.keys(topo.objects)[0];
     if (!objKey) return null;
-    return window.topojson.feature(topo, topo.objects[objKey]);
+    return topoFeature(topo, topo.objects[objKey]);
   } catch (err) {
     dbg(`Bordas falhou: ${err.message}`, 'warn');
     return null;

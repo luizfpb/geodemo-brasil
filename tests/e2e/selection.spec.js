@@ -31,13 +31,6 @@ test.describe('Seleção de municípios', () => {
   });
 
   test('selecao via estado global funciona', async ({ page }) => {
-    // selecionar via JS
-    await page.evaluate(() => {
-      const state = window.__geodemo_state;
-      // precisamos importar o state real, mas ele esta exposto parcialmente
-      // vamos usar o click direto no mapa
-    });
-
     // usar busca como metodo confiavel de selecao
     const input = page.locator('#search-input');
     await input.fill('Belo Horizonte');

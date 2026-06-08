@@ -4,7 +4,7 @@ import L from 'leaflet';
 import * as state from './state.js';
 import * as data from './data.js';
 import * as choropleth from './choropleth.js';
-import { fmtPop, fmtDec, fmtPercent, fmtCurrency, fmtDec2, escapeHtml } from './utils/format.js';
+import { fmtPop, fmtDec, fmtPercent, fmtCurrency, escapeHtml } from './utils/format.js';
 import { dbg } from './utils/debug.js';
 
 export function renderMunicipalities(map, geojson) {

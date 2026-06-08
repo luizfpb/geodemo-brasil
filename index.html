@@ -4,10 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Plataforma de análise geodemográfica dos municípios brasileiros com dados do Censo 2022 (IBGE)">
-  <meta http-equiv="X-Content-Type-Options" content="nosniff">
-  <meta http-equiv="X-Frame-Options" content="DENY">
   <title>GeoDemoBrasil — Análise Geodemográfica</title>
   <link rel="icon" href="/favicon.ico">
+  <!-- aplica o tema antes do primeiro render para evitar flash claro->escuro -->
+  <script>
+    (function () {
+      var saved = localStorage.getItem('geodemo-theme');
+      var theme = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
 </head>
 <body>
   <div id="app">
@@ -160,9 +166,6 @@
       </div>
     </div>
   </div>
-
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Turf.js/6.5.0/turf.min.js"></script>
 
   <script type="module" src="/src/main.js"></script>
 </body>
