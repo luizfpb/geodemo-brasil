@@ -1,4 +1,4 @@
-// ui/charts.js -- helpers de Chart.js (lazy load, tema escuro)
+// ui/charts.js -- helpers de Chart.js (lazy load, opcoes com tema dinamico)
 
 let chartModulePromise = null;
 
@@ -25,38 +25,45 @@ export async function loadChartJS() {
   return chartModulePromise;
 }
 
-export function darkThemeOptions(overrides = {}) {
+// le as CSS vars do tema ativo para que o grafico respeite tema claro/escuro
+export function buildChartOptions(overrides = {}) {
+  const style = getComputedStyle(document.documentElement);
+  const textMuted = style.getPropertyValue('--text-muted').trim() || '#5f6375';
+  const border = style.getPropertyValue('--border').trim() || '#2a2d3a';
+  const bgSecondary = style.getPropertyValue('--bg-secondary').trim() || '#181a22';
+  const textPrimary = style.getPropertyValue('--text-primary').trim() || '#e4e6ed';
+
   return {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
       legend: {
         labels: {
-          color: '#9498a8',
+          color: textMuted,
           font: { family: "'IBM Plex Sans', sans-serif", size: 11 },
         },
       },
       tooltip: {
-        backgroundColor: '#181a22',
-        borderColor: '#2a2d3a',
+        backgroundColor: bgSecondary,
+        borderColor: border,
         borderWidth: 1,
-        titleColor: '#e4e6ed',
-        bodyColor: '#9498a8',
+        titleColor: textPrimary,
+        bodyColor: textMuted,
         titleFont: { family: "'IBM Plex Sans', sans-serif" },
         bodyFont: { family: "'JetBrains Mono', monospace", size: 11 },
       },
     },
     scales: {
       x: {
-        ticks: { color: '#5f6375', font: { size: 11 } },
-        grid: { color: '#2a2d3a' },
+        ticks: { color: textMuted, font: { size: 11 } },
+        grid: { color: border },
       },
       y: {
         ticks: {
-          color: '#5f6375',
+          color: textMuted,
           font: { family: "'JetBrains Mono', monospace", size: 11 },
         },
-        grid: { color: '#2a2d3a' },
+        grid: { color: border },
       },
     },
     ...overrides,

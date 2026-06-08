@@ -2,8 +2,9 @@
 
 import * as state from '../state.js';
 import * as data from '../data.js';
-import { fmtPop, fmtDec, fmtPercent, fmtCurrency, fmtDec2, escapeHtml } from '../utils/format.js';
+import { fmtPop, fmtDec, fmtPercent, fmtCurrency, escapeHtml } from '../utils/format.js';
 import { getCompareBtn } from './groups.js';
+import { loadChartJS, buildChartOptions } from './charts.js';
 
 const $panel = document.getElementById('comparison-panel');
 const $content = document.getElementById('comparison-content');
@@ -111,7 +112,7 @@ function computeThemeAvg(codes, themeId, subvar) {
 }
 
 function formatVal(val, themeId) {
-  if (val == null) return '\u2014';
+  if (val == null) return '—';
   switch (themeId) {
     case 'densidade':
       return fmtDec(val) + ' hab/km²';
@@ -126,74 +127,45 @@ function formatVal(val, themeId) {
   }
 }
 
-function renderCharts(a, b) {
+async function renderCharts(a, b) {
   $charts.innerHTML =
     '<div class="comp-chart-wrap"><canvas id="comp-bar-chart"></canvas></div>';
 
-  import('chart.js')
-    .then((ChartModule) => {
-      ChartModule.Chart.register(
-        ChartModule.BarController,
-        ChartModule.BarElement,
-        ChartModule.CategoryScale,
-        ChartModule.LinearScale,
-        ChartModule.Tooltip,
-        ChartModule.Legend
-      );
+  try {
+    const ChartModule = await loadChartJS();
 
-      const canvas = document.getElementById('comp-bar-chart');
-      if (!canvas) return;
+    const canvas = document.getElementById('comp-bar-chart');
+    if (!canvas) return;
 
-      new ChartModule.Chart(canvas, {
-        type: 'bar',
-        data: {
-          labels: ['Municípios', 'Pop. total (mil)', 'Pop. média (mil)'],
-          datasets: [
-            {
-              label: 'Grupo A',
-              data: [a.count, a.totalPop / 1000, a.avgPop / 1000],
-              backgroundColor: 'rgba(52, 152, 219, 0.7)',
-              borderColor: '#3498db',
-              borderWidth: 1,
-            },
-            {
-              label: 'Grupo B',
-              data: [b.count, b.totalPop / 1000, b.avgPop / 1000],
-              backgroundColor: 'rgba(231, 76, 60, 0.7)',
-              borderColor: '#e74c3c',
-              borderWidth: 1,
-            },
-          ],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              labels: { color: '#9498a8', font: { family: "'IBM Plex Sans', sans-serif", size: 11 } },
-            },
-            tooltip: {
-              backgroundColor: '#181a22',
-              borderColor: '#2a2d3a',
-              borderWidth: 1,
-              titleColor: '#e4e6ed',
-              bodyColor: '#9498a8',
-            },
+    const style = getComputedStyle(document.documentElement);
+    const colorA = style.getPropertyValue('--color-group-a').trim() || '#3498db';
+    const colorB = style.getPropertyValue('--color-group-b').trim() || '#e74c3c';
+
+    new ChartModule.Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: ['Municípios', 'Pop. total (mil)', 'Pop. média (mil)'],
+        datasets: [
+          {
+            label: 'Grupo A',
+            data: [a.count, a.totalPop / 1000, a.avgPop / 1000],
+            backgroundColor: colorA + 'b3',
+            borderColor: colorA,
+            borderWidth: 1,
           },
-          scales: {
-            x: {
-              ticks: { color: '#5f6375', font: { size: 11 } },
-              grid: { color: '#2a2d3a' },
-            },
-            y: {
-              ticks: { color: '#5f6375', font: { family: "'JetBrains Mono', monospace", size: 11 } },
-              grid: { color: '#2a2d3a' },
-            },
+          {
+            label: 'Grupo B',
+            data: [b.count, b.totalPop / 1000, b.avgPop / 1000],
+            backgroundColor: colorB + 'b3',
+            borderColor: colorB,
+            borderWidth: 1,
           },
-        },
-      });
-    })
-    .catch(() => {
-      $charts.innerHTML = '<p style="color:var(--text-muted);font-size:12px;padding:8px">Gráfico indisponível.</p>';
+        ],
+      },
+      options: buildChartOptions(),
     });
+  } catch (_) {
+    $charts.innerHTML =
+      '<p style="color:var(--text-muted);font-size:12px;padding:8px">Gráfico indisponível.</p>';
+  }
 }

@@ -1,6 +1,8 @@
 // ui/radius.js -- selecao por raio geografico com turf.js
 
 import L from 'leaflet';
+import circle from '@turf/circle';
+import booleanIntersects from '@turf/boolean-intersects';
 import * as state from '../state.js';
 import { getMap } from '../map.js';
 import { dbg } from '../utils/debug.js';
@@ -66,14 +68,9 @@ function executeRadius(latlng) {
   exitMode();
   clearVisuals();
 
-  if (typeof window.turf === 'undefined' || typeof window.turf.circle !== 'function') {
-    dbg('turf.js nao carregado', 'error');
-    return;
-  }
-
-  let circle;
+  let circ;
   try {
-    circle = window.turf.circle([latlng.lng, latlng.lat], radiusKm, {
+    circ = circle([latlng.lng, latlng.lat], radiusKm, {
       steps: 64,
       units: 'kilometers',
     });
@@ -84,7 +81,7 @@ function executeRadius(latlng) {
 
   const map = getMap();
 
-  radiusCircle = L.geoJSON(circle, {
+  radiusCircle = L.geoJSON(circ, {
     style: {
       weight: 2,
       color: '#e67e22',
@@ -104,10 +101,13 @@ function executeRadius(latlng) {
     interactive: false,
   }).addTo(map);
 
+  // pre-filtro por bounding box antes do teste caro booleanIntersects
+  const circleBounds = L.geoJSON(circ).getBounds();
   let count = 0;
   state.muniLayers.forEach((layer, code) => {
     try {
-      if (window.turf.booleanIntersects(circle, layer.feature)) {
+      if (!layer.getBounds().intersects(circleBounds)) return;
+      if (booleanIntersects(circ, layer.feature)) {
         state.select(code);
         count++;
       }

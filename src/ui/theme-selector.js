@@ -18,6 +18,27 @@ export function init() {
   $subvar.addEventListener('change', onSubvarChange);
 }
 
+// sincroniza os <select>s com o state atual (usado apos restoreFromHash)
+export function syncUI() {
+  const themeId = state.ui.activeTheme;
+  const theme = data.THEMES[themeId];
+  if (!theme) return;
+
+  $theme.value = themeId;
+
+  if (theme.subvars && theme.subvars.length > 0) {
+    $subvar.innerHTML = theme.subvars
+      .map((sv) => `<option value="${sv.id}">${sv.label}</option>`)
+      .join('');
+    $subvar.classList.remove('hidden');
+    if (state.ui.activeSubvar) {
+      $subvar.value = state.ui.activeSubvar;
+    }
+  } else {
+    $subvar.classList.add('hidden');
+  }
+}
+
 async function onThemeChange() {
   const themeId = $theme.value;
   const theme = data.THEMES[themeId];

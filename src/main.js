@@ -109,8 +109,6 @@ function restoreFromHash() {
 
 async function boot() {
   dbg('Boot iniciado');
-  dbg(`topojson: ${typeof window.topojson !== 'undefined' ? 'OK' : 'FALHA'}`);
-  dbg(`turf: ${typeof window.turf !== 'undefined' ? 'OK' : 'FALHA'}`);
 
   const map = createMap();
 
@@ -160,6 +158,9 @@ async function boot() {
     if (state.ui.activeTheme !== 'populacao') {
       await data.loadTheme(state.ui.activeTheme);
     }
+
+    // sincroniza os selects de tema/subvar com o estado restaurado do hash
+    themeSelector.syncUI();
 
     choropleth.reapplyAll();
     choropleth.updateLegend(map);
